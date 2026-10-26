@@ -19,7 +19,20 @@ Everything in the repository exists to make those two numbers trustworthy.
 
 ## Your task
 
-Two functions in `agent/runner.py` are stubs. Nothing else is missing.
+Two functions in `agent/runner.py` are stubs. Implement those first.
+
+**Nothing in this repository has ever been run end to end**, because nothing
+can run until those two functions exist. You are the first person to execute
+it. A review has already found seven defects outside those functions, all now
+fixed; assume there are more. If something fails outside your own code, treat
+it as a real defect here, report it, and fix it rather than working around it.
+The "Do not change these" list below is about design decisions that look wrong
+and are not. It is not a claim that the rest of the code works.
+
+`evaluation/analyse.py` is yours too. It turns the result files into the
+paper's tables and figures and has never run on real data either. The
+reasoning behind every number is in its docstrings: those definitions are
+fixed, the implementation is not.
 
 ### 1. `call_model(messages, model)`
 
