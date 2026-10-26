@@ -92,17 +92,78 @@ TASKS = {
 MAX_STEPS_ABSOLUTE = 60  # last-resort stop so a run cannot be infinite
 
 
+OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_NUM_CTX = 32768  # Ollama's default window silently truncates long runs
+
+# Published per-million-token rates (input, output). Haiku 5.5 bills the whole
+# request at the higher rate once the prompt passes 100K tokens.
+ANTHROPIC_RATES = {
+    "claude-haiku-5-5": {"base": (0.10, 0.50), "long": (0.50, 2.50),
+                         "long_above": 100_000},
+}
+
+
 def call_model(messages, model=DEFAULT_MODEL):
-    """TODO: replace with the provider SDK. See DEVELOPER.md for the contract.
+    """Send the conversation to the configured backend. See DEVELOPER.md.
 
-    Must return (text, input_tokens, output_tokens, cost_usd), with the token
-    counts read from the provider's response and never estimated. Temperature 0.
-    Turn the SDK's own retries off: retry behaviour is what the experiment
-    measures.
-
-    Dispatch on BACKEND. On the local backend return 0.0 for cost_usd.
+    Returns (text, input_tokens, output_tokens, cost_usd), with the token
+    counts read from the provider's response and never estimated. Temperature 0,
+    no retries on either backend: retry behaviour is what the experiment
+    measures. On the local backend cost_usd is 0.0.
     """
-    raise NotImplementedError(f"wire this to the {BACKEND} backend")
+    if BACKEND == "ollama":
+        return _call_ollama(messages, model)
+    if BACKEND == "anthropic":
+        return _call_anthropic(messages, model)
+    raise ValueError(f"unknown AGENT_FUEL_BACKEND: {BACKEND}")
+
+
+def _call_ollama(messages, model):
+    # Plain HTTP: urllib makes exactly one attempt and never retries.
+    import json
+    import urllib.request
+
+    body = json.dumps({
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "options": {"temperature": 0, "seed": 0, "num_ctx": OLLAMA_NUM_CTX},
+    }).encode()
+    request = urllib.request.Request(
+        f"{OLLAMA_URL}/api/chat", data=body,
+        headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=600) as response:
+        reply = json.loads(response.read())
+
+    return (reply["message"]["content"],
+            reply["prompt_eval_count"], reply["eval_count"], 0.0)
+
+
+def _call_anthropic(messages, model):
+    import anthropic
+
+    # max_retries=0: an SDK retry would be invisible to the controller.
+    # No cache_control anywhere, so nothing is cached.
+    client = anthropic.Anthropic(max_retries=0)
+    response = client.messages.create(
+        model=model,
+        max_tokens=4096,
+        temperature=0,
+        messages=messages,
+    )
+    text = "".join(b.text for b in response.content if b.type == "text")
+    tin = response.usage.input_tokens
+    tout = response.usage.output_tokens
+    return text, tin, tout, _anthropic_cost(model, tin, tout)
+
+
+def _anthropic_cost(model, input_tokens, output_tokens):
+    rates = ANTHROPIC_RATES.get(model)
+    if rates is None:
+        return 0.0
+    tier = "long" if input_tokens > rates["long_above"] else "base"
+    rate_in, rate_out = rates[tier]
+    return (input_tokens * rate_in + output_tokens * rate_out) / 1_000_000
 
 
 def run_agent(task, tools, controller, step_cap=None, account_cap=None):
@@ -185,4 +246,16 @@ def parse_action(text):
     that cannot follow the protocol is a finding about that model, and
     silently repairing its output would hide it.
     """
-    raise NotImplementedError("wire this to the JSON action protocol")
+    import json
+
+    try:
+        reply = json.loads(text)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(reply, dict) or "tool" not in reply:
+        return None
+
+    args = reply.get("args", {})
+    if not isinstance(args, dict):
+        return None
+    return reply["tool"], args
