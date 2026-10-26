@@ -1,0 +1,301 @@
+{
+  "version": "1.0",
+  "description": "Failure scenarios for evaluating execution-level spend control in LLM agents. Each scenario names one cause on the tool side, not one behaviour on the agent side.",
+  "groups": {
+    "A": "External service failure",
+    "B": "Overspend with no service failure",
+    "C": "False-positive control"
+  },
+  "scenarios": [
+    {
+      "id": 1,
+      "slug": "service_unavailable",
+      "group": "A",
+      "title": "Service unavailable",
+      "failure_mode": "unavailable",
+      "task": "daily_analytics",
+      "what_breaks": "The tool raises a connection error on every call.",
+      "what_agent_sees": "An explicit error, no data.",
+      "why_it_loops": "Models are trained on material in which network errors are transient, so the agent concludes that trying again is sensible. It holds no state recording how many attempts have been made.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "circuit_breaker",
+      "note": "The motivating real-world incident."
+    },
+    {
+      "id": 2,
+      "slug": "empty_response",
+      "group": "A",
+      "title": "Empty response",
+      "failure_mode": "empty",
+      "task": "daily_analytics",
+      "what_breaks": "The service responds correctly but returns zero records.",
+      "what_agent_sees": "A successful call with an empty array.",
+      "why_it_loops": "There is no error, so the agent blames its own query. It rephrases, changes the period, tries another domain. Every call looks new.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "loop_detector_result_fingerprint",
+      "note": "Argument-only fingerprinting will miss this. The result fingerprint is what catches it."
+    },
+    {
+      "id": 3,
+      "slug": "auth_error",
+      "group": "A",
+      "title": "Authentication error",
+      "failure_mode": "auth",
+      "task": "daily_analytics",
+      "what_breaks": "The access token has expired; the service returns 401.",
+      "what_agent_sees": "A coded error it may not recognise as terminal.",
+      "why_it_loops": "Retrying will never help, but the agent does not know that. It may try variants of the key.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "error_classifier",
+      "note": "Should stop on the first occurrence, not after a window."
+    },
+    {
+      "id": 4,
+      "slug": "timeout",
+      "group": "A",
+      "title": "Timeout",
+      "failure_mode": "timeout",
+      "task": "daily_analytics",
+      "what_breaks": "The service accepts the request but does not respond within the deadline.",
+      "what_agent_sees": "A wait, then an error.",
+      "why_it_loops": "The agent does not know whether the request completed. If the tool writes as well as reads, a retry can duplicate the action.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "circuit_breaker"
+    },
+    {
+      "id": 5,
+      "slug": "partial_response",
+      "group": "A",
+      "title": "Partial response with broken pagination",
+      "failure_mode": "partial",
+      "task": "daily_analytics",
+      "what_breaks": "The service returns the first 20 of 500 records with a truncation flag, and the same page every time.",
+      "what_agent_sees": "Valid but incomplete data.",
+      "why_it_loops": "The agent collects the remainder in batches. The loop is endless yet looks like legitimate work.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "loop_detector_result_fingerprint"
+    },
+    {
+      "id": 6,
+      "slug": "flapping_service",
+      "group": "A",
+      "title": "Flapping service",
+      "failure_mode": "flapping",
+      "task": "daily_analytics",
+      "what_breaks": "The service responds every other time, alternating success and failure.",
+      "what_agent_sees": "Instability.",
+      "why_it_loops": "Successes reset a consecutive-error counter, so a naive circuit breaker never trips.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "circuit_breaker_sliding_window",
+      "note": "Designed for, not yet verified. A consecutive counter fails here; the sliding window is the fix under test."
+    },
+    {
+      "id": 7,
+      "slug": "gradual_degradation",
+      "group": "A",
+      "title": "Gradual degradation",
+      "failure_mode": "slow_degrade",
+      "task": "daily_analytics",
+      "what_breaks": "The service responds correctly, but response time grows with every call.",
+      "what_agent_sees": "Everything working, only slowly.",
+      "why_it_loops": "Formally it does not loop. This tests the time axis rather than the token axis.",
+      "task_completable": true,
+      "expected_decision": "stop",
+      "expected_mechanism": "time_budget"
+    },
+    {
+      "id": 8,
+      "slug": "malformed_response",
+      "group": "A",
+      "title": "Malformed response",
+      "failure_mode": "malformed",
+      "task": "daily_analytics",
+      "what_breaks": "An HTML error page from a proxy arrives instead of JSON.",
+      "what_agent_sees": "A successful HTTP response with unreadable content.",
+      "why_it_loops": "The agent tries to parse it, fails, concludes it formatted the request wrongly, and retries with changes.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "loop_detector_result_fingerprint"
+    },
+    {
+      "id": 9,
+      "slug": "unreachable_goal",
+      "group": "B",
+      "title": "Unreachable goal",
+      "failure_mode": "healthy",
+      "task": "impossible_period",
+      "what_breaks": "Nothing. The task requests data for a period that does not exist in the system.",
+      "what_agent_sees": "Every tool working, but no answer to the question.",
+      "why_it_loops": "The agent searches in good faith. Every step is reasoned and differs from the last.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "run_budget",
+      "note": "UNCOVERED by design. Loop detector and circuit breaker are both powerless; only the budget stops it."
+    },
+    {
+      "id": 10,
+      "slug": "conflicting_data",
+      "group": "B",
+      "title": "Conflicting data",
+      "failure_mode": "conflicting",
+      "task": "cross_check",
+      "what_breaks": "Two tools return incompatible values for the same metric.",
+      "what_agent_sees": "A conflict that needs resolving.",
+      "why_it_loops": "The agent rechecks, clarifies, looks for a third source. Reasonable behaviour, expensive outcome.",
+      "task_completable": false,
+      "expected_decision": "stop",
+      "expected_mechanism": "run_budget",
+      "note": "UNCOVERED by design."
+    },
+    {
+      "id": 11,
+      "slug": "context_accumulation",
+      "group": "B",
+      "title": "Context accumulation",
+      "failure_mode": "healthy",
+      "task": "twenty_domains",
+      "what_breaks": "Nothing. The task is long and executes normally.",
+      "what_agent_sees": "Normal work.",
+      "why_it_loops": "It does not. Context accumulates with every step, so cost grows faster than the step count.",
+      "task_completable": true,
+      "expected_decision": "stop",
+      "expected_mechanism": "run_budget",
+      "note": "UNCOVERED by design. No failure, but overspend all the same."
+    },
+    {
+      "id": 12,
+      "slug": "long_legitimate_task",
+      "group": "C",
+      "title": "Long legitimate task",
+      "failure_mode": "healthy",
+      "task": "ten_domains",
+      "what_breaks": "Nothing. Ten domains, roughly 43 steps, everything working.",
+      "what_agent_sees": "Normal work.",
+      "why_it_loops": "It does not. This tests whether the controller kills normal work.",
+      "task_completable": true,
+      "expected_decision": "allow",
+      "expected_mechanism": null,
+      "note": "The iteration cap is expected to interrupt this at step 15. Agent Fuel must not."
+    },
+    {
+      "id": 13,
+      "slug": "legitimate_repetition",
+      "group": "C",
+      "title": "Legitimate repetition",
+      "failure_mode": "healthy",
+      "task": "forty_domains",
+      "what_breaks": "Nothing. The agent rightfully calls one tool forty times with different arguments.",
+      "what_agent_sees": "Normal work.",
+      "why_it_loops": "It does not. This tests whether the loop detector mistakes repetition for looping.",
+      "task_completable": true,
+      "expected_decision": "allow",
+      "expected_mechanism": null,
+      "note": "A detector keyed on tool name alone fires falsely here. Argument normalisation must not collapse distinct domains."
+    },
+    {
+      "id": 14,
+      "slug": "slow_but_working",
+      "group": "C",
+      "title": "Slow but working service",
+      "failure_mode": "slow_healthy",
+      "task": "daily_analytics",
+      "what_breaks": "Nothing. The tool responds in 15 seconds instead of one, but responds correctly.",
+      "what_agent_sees": "Slow but valid data.",
+      "why_it_loops": "It does not. This tests whether the breaker opens on a healthy service.",
+      "task_completable": true,
+      "expected_decision": "allow",
+      "expected_mechanism": null,
+      "note": "If the breaker treats slowness as failure, it fires falsely. Latency alone must not count as an error."
+    },
+    {
+      "id": 15,
+      "slug": "healthy_task",
+      "group": "C",
+      "title": "Healthy task",
+      "failure_mode": "healthy",
+      "task": "daily_analytics",
+      "what_breaks": "Nothing. Ordinary daily analytics, roughly eight steps.",
+      "what_agent_sees": "Normal work.",
+      "why_it_loops": "It does not. This is the baseline and the overhead measurement.",
+      "task_completable": true,
+      "expected_decision": "allow",
+      "expected_mechanism": null,
+      "note": "Only the latency the controller adds is measured here."
+    }
+  ],
+  "configurations": [
+    {
+      "code": "A",
+      "name": "No control",
+      "components": [],
+      "note": "The baseline. Bounded only by the harness safety ceiling, so a run cannot run away."
+    },
+    {
+      "code": "B",
+      "name": "Account-level limit",
+      "components": [
+        "account_budget"
+      ],
+      "note": "Current practice: one allowance shared across every run in the sweep, so the starvation of healthy runs is visible in the data."
+    },
+    {
+      "code": "C",
+      "name": "Iteration cap",
+      "components": [
+        "step_cap"
+      ],
+      "note": "The simplest technical control. Swept at 10, 15, 20, 30 and 40 steps rather than fixed at one value."
+    },
+    {
+      "code": "D",
+      "name": "Run budget only",
+      "components": [
+        "run_budget",
+        "time_budget"
+      ],
+      "note": "The first execution-level control, and the start of the ablation ladder."
+    },
+    {
+      "code": "E",
+      "name": "Run budget + loop detector",
+      "components": [
+        "run_budget",
+        "time_budget",
+        "loop_detector"
+      ],
+      "note": "Adds repetition detection. The difference from D is the loop detector's contribution."
+    },
+    {
+      "code": "F",
+      "name": "Run budget + loop detector + circuit breaker",
+      "components": [
+        "run_budget",
+        "time_budget",
+        "loop_detector",
+        "circuit_breaker"
+      ],
+      "note": "Adds failure-rate detection. The difference from E is the breaker's contribution."
+    },
+    {
+      "code": "G",
+      "name": "Agent Fuel",
+      "components": [
+        "run_budget",
+        "time_budget",
+        "loop_detector",
+        "circuit_breaker",
+        "error_classifier",
+        "policy_engine"
+      ],
+      "note": "The full controller: adds error classification and the warn rung."
+    }
+  ],
+  "repeats": 3,
+  "total_runs": 315
+}

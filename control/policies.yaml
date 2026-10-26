@@ -1,0 +1,36 @@
+# Thresholds for Agent Fuel. Editable without touching code, so a tuning pass
+# during testing is a config change rather than a commit to the controller.
+
+run_budget:
+  max_tokens: 50000
+  max_cost_usd: 2.00
+  warn_at_fraction: 0.8
+
+time_budget:
+  max_seconds: 600
+
+loop_detector:
+  threshold: 3          # identical fingerprints before a stop
+  warn_at: 2
+  normalise:
+    lowercase_strings: true
+    sort_keys: true
+    # Deliberately conservative. Anything more aggressive risks collapsing
+    # scenario 13 (forty legitimate calls) into a false positive.
+
+circuit_breaker:
+  window: 5             # sliding, not consecutive: scenario 6 needs this
+  max_failures: 4
+  cooldown_seconds: 60
+  latency_counts_as_failure: false   # scenario 14 depends on this being false
+
+error_classifier:
+  terminal_statuses: [400, 401, 403, 404, 405, 410, 422]
+  transient_statuses: [408, 425, 429, 500, 502, 503, 504]
+  unknown_policy: retry_once
+
+policy:
+  # Strongest verdict wins: stop over warn over allow.
+  warning_template: >
+    Controller notice: {reason}. Stop retrying this tool and either proceed
+    with partial results or report what you could not retrieve.

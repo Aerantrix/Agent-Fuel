@@ -1,0 +1,10 @@
+# The experiment itself
+pyyaml>=6.0
+
+# Add your model provider's SDK here. For the local backend, Ollama needs no
+# package: it is reached over HTTP on localhost.
+
+# Analysis only (evaluation/analyse.py). Not needed to run the sweep.
+pandas>=2.0
+matplotlib>=3.7
+tabulate>=0.9
