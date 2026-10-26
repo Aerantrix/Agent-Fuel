@@ -1,0 +1,602 @@
+<title>Agent Fuel Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: instrument panel from the Token Burn Console prototype. Run status band, then results
+   (stat rail, burn curve + trade-off side by side, scenario matrix, run detail) and a short explainer.
+   Stacks to one column under 860px. */
+:root {
+  --bg: #EEF1F5; --surface: #FFFFFF; --surface-2: #F7F9FB;
+  --ink: #15202E; --ink-2: #5B6879; --ink-3: #8D99A8;
+  --line: #D6DBE3; --line-soft: #E6EAF0;
+  --burn: #C2410C; --burn-soft: rgba(194,65,12,.12);
+  --guard: #0E7A70; --guard-soft: rgba(14,122,112,.12);
+  --warn: #B45309; --warn-soft: rgba(180,83,9,.12);
+  --ctl: #6D46C2; --ctl-soft: rgba(109,70,194,.12);
+  --accent: #3B5BA5; --accent-soft: rgba(59,91,165,.10);
+  --mid-1: #7D8A9B; --mid-2: #A3AEBC;
+  --display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Helvetica Neue", sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111822; --surface: #1A2330; --surface-2: #151E29;
+  --ink: #E7ECF3; --ink-2: #93A0B1; --ink-3: #6B7889;
+  --line: #2C3848; --line-soft: #232E3C;
+  --burn: #F97316; --burn-soft: rgba(249,115,22,.16);
+  --guard: #2DD4BF; --guard-soft: rgba(45,212,191,.16);
+  --warn: #FBBF24; --warn-soft: rgba(251,191,36,.14);
+  --ctl: #B79BFF; --ctl-soft: rgba(183,155,255,.16);
+  --accent: #7FA0E8; --accent-soft: rgba(127,160,232,.14);
+  --mid-1: #8796A9; --mid-2: #5E6B7C;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #111822; --surface: #1A2330; --surface-2: #151E29;
+  --ink: #E7ECF3; --ink-2: #93A0B1; --ink-3: #6B7889;
+  --line: #2C3848; --line-soft: #232E3C;
+  --burn: #F97316; --burn-soft: rgba(249,115,22,.16);
+  --guard: #2DD4BF; --guard-soft: rgba(45,212,191,.16);
+  --warn: #FBBF24; --warn-soft: rgba(251,191,36,.14);
+  --ctl: #B79BFF; --ctl-soft: rgba(183,155,255,.16);
+  --accent: #7FA0E8; --accent-soft: rgba(127,160,232,.14);
+  --mid-1: #8796A9; --mid-2: #5E6B7C;
+  color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 0 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+p { margin: 0; }
+h1 { font-family: var(--display); font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 16px; font-weight: 600; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--display); font-size: 14px; font-weight: 600; margin: 0; }
+.cap { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; max-width: 72ch; }
+.k { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-weight: 600; }
+.mono { font-family: var(--data); font-variant-numeric: tabular-nums; }
+.stack { display: grid; gap: 18px; }
+.section-head { display: grid; gap: 2px; margin-top: 34px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;
+  padding-block: 28px 18px; border-bottom: 1px solid var(--line); }
+.runmeta { font-family: var(--data); font-size: 11.5px; color: var(--ink-2); text-align: right; line-height: 1.75; }
+.runmeta b { color: var(--ink); font-weight: 600; }
+select { font: 500 12px var(--data); padding: 3px 6px; border-radius: 3px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.models { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.mchip { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--data); padding: 3px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.mchip input { margin: 0; accent-color: var(--accent); }
+.mchip.on { color: var(--ink); border-color: var(--ink-3); }
+.mchip svg { width: 18px; height: 8px; }
+.mchip small { color: var(--ink-3); font-size: 10.5px; }
+.mchip:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.vlist { display: grid; gap: 2px; font-family: var(--data); font-size: 13px; font-variant-numeric: tabular-nums; }
+.vlist span { display: flex; justify-content: space-between; gap: 10px; }
+.vlist i { font-style: normal; color: var(--ink-3); }
+.vlist b { font-weight: 600; }
+.cellstack { display: grid; gap: 2px; }
+.cellstack .cell { min-height: 26px; grid-template-columns: auto 1fr; gap: 4px; place-items: center start; padding: 2px 5px; text-align: left; }
+.cellstack .cell .mk { font-weight: 400; font-size: 10px; opacity: .8; }
+select:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.now { margin-top: 18px; display: grid; gap: 3px; background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 11px 14px; border-radius: 0 4px 4px 0; }
+.now .doing { font-size: 15px; font-weight: 600; color: var(--ink); }
+.now .meta { font-size: 12px; color: var(--ink-2); }
+.pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: middle; }
+@media (prefers-reduced-motion: no-preference) { .pulse { animation: p 1.6s ease-in-out infinite; } }
+@keyframes p { 50% { opacity: .25; } }
+
+.rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 18px; }
+.stat { background: var(--surface); padding: 15px 18px; min-width: 0; display: grid; gap: 4px; align-content: start; }
+.stat .v { font-family: var(--data); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat .n { font-size: 11.5px; color: var(--ink-2); }
+.v.good { color: var(--guard); } .v.bad { color: var(--burn); } .v.none { color: var(--ink-3); }
+
+.grid2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; }
+.panel { background: var(--surface); border: 1px solid var(--line); padding: 18px; min-width: 0; display: grid; gap: 12px; align-content: start; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: space-between; align-items: flex-start; }
+.chartbox { overflow-x: auto; }
+svg { display: block; max-width: 100%; height: auto; }
+svg text { font-family: var(--data); }
+.empty-chart { min-height: 220px; display: grid; place-items: center; text-align: center; color: var(--ink-3); font-size: 13px;
+  border: 1px dashed var(--line); background: var(--surface-2); padding: 20px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; color: var(--ink-2); font-family: var(--data); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 3px; border-radius: 2px; flex: none; }
+.box { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+.matrix { min-width: 860px; font-size: 12.5px; }
+.matrix th, .matrix td { padding: 6px 6px; border-bottom: 1px solid var(--line-soft); text-align: center; }
+.matrix th:first-child, .matrix td:first-child { text-align: left; }
+.matrix thead th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.matrix thead th small { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 10.5px; }
+.matrix td.sc { font-size: 13px; white-space: nowrap; padding-right: 12px; }
+.matrix td.sc .g { font-family: var(--data); color: var(--ink-3); font-size: 11px; margin-right: 6px; }
+.grp td { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-weight: 600; padding-top: 16px; border-bottom: 1px solid var(--line); text-align: left !important; }
+.cell { width: 100%; min-height: 38px; border: 1px solid transparent; border-radius: 3px; background: var(--surface-2); color: var(--ink-3);
+  font: 600 12px/1.2 var(--data); font-variant-numeric: tabular-nums; display: grid; place-items: center; padding: 4px 2px; }
+button.cell[data-has] { cursor: pointer; }
+button.cell[data-has]:hover { border-color: var(--ink-2); }
+.cell.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cell small { font-weight: 400; font-size: 10.5px; display: block; }
+.c-agent { background: var(--warn-soft); color: var(--warn); }
+.c-controller { background: var(--ctl-soft); color: var(--ctl); }
+.c-ceiling { background: var(--burn-soft); color: var(--burn); }
+.c-ok { background: var(--guard-soft); color: var(--guard); }
+.c-false { background: var(--burn-soft); color: var(--burn); }
+.pill { font: 600 10px var(--body); letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; white-space: nowrap; display: inline-block; }
+.pill.pass { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+.pill.flag { background: var(--burn-soft); color: var(--burn); }
+.pill.stop { background: var(--guard-soft); color: var(--guard); }
+.pill.warnp { background: var(--warn-soft); color: var(--warn); }
+
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 16px; }
+.kv div { display: grid; gap: 2px; min-width: 0; }
+.kv b { font-weight: 600; font-size: 14.5px; overflow-wrap: anywhere; }
+.steps { min-width: 600px; font-size: 13px; }
+.steps th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.steps td { padding: 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.steps td.n { font-family: var(--data); color: var(--ink-3); white-space: nowrap; }
+.steps code { font-family: var(--data); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-box { font-size: 13.5px; padding: 10px 12px; background: var(--warn-soft); border-left: 3px solid var(--warn); border-radius: 0 4px 4px 0; }
+.log { font-family: var(--data); font-size: 12px; }
+.lrow { display: grid; grid-template-columns: 40px 1fr auto auto; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); align-items: baseline; }
+.lrow .step { color: var(--ink-3); }
+.lrow .msg { color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.lrow .msg b { color: var(--ink); font-weight: 500; }
+.lrow .tok { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.how div { font-size: 13.5px; display: grid; gap: 2px; }
+.how code { font-family: var(--data); font-size: 11.5px; color: var(--ink-3); }
+details summary { cursor: pointer; font-family: var(--display); font-weight: 600; font-size: 15px; }
+footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 20px; }
+
+@media (max-width: 860px) {
+  .models { justify-content: flex-start; }
+  .grid2 { grid-template-columns: 1fr; }
+  .rail { grid-template-columns: repeat(2, 1fr); }
+  header { align-items: flex-start; }
+  .runmeta { text-align: left; }
+}
+@media (max-width: 520px) { h1 { font-size: 23px; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div>
+    <span class="k">CSIT305 · research</span>
+    <h1>Agent Fuel Tracker</h1>
+    <p class="cap">How many tokens an agent burns when its tool breaks, and how many the controller saves. 15 scenarios × 7 arms × 3 repeats.</p>
+  </div>
+  <div class="runmeta" id="runmeta">
+    <span id="models" class="models" role="group" aria-label="Models"></span><br>
+    runs <b id="m-runs">0</b> of <span id="m-plan">315</span><br>
+    spent <b id="m-cost">$0</b>
+  </div>
+</header>
+
+<div class="now">
+  <span class="k">Run status</span>
+  <div class="doing" id="now-doing">Loading…</div>
+  <div class="meta" id="now-meta"></div>
+</div>
+
+<!-- ====== RESULTS ====== -->
+<div class="section-head">
+  <h2>Results</h2>
+  <p class="cap">Measured numbers only. While there are few runs the charts stay empty or sparse; they fill in by themselves.</p>
+</div>
+
+<div class="rail">
+  <div class="stat"><span class="k">Burned without control</span><span class="v" id="s-burn">—</span><span class="n" id="s-burn-n">mean tokens per run, arm A, failed services</span></div>
+  <div class="stat"><span class="k">Saved by the controller</span><span class="v" id="s-saved">—</span><span class="n" id="s-saved-n">arm G against A</span></div>
+  <div class="stat"><span class="k">False interruptions</span><span class="v" id="s-false">—</span><span class="n" id="s-false-n">arm G, healthy tasks</span></div>
+  <div class="stat"><span class="k">Runs done</span><span class="v" id="s-done">0</span><span class="n" id="s-done-n">of 315 planned</span></div>
+</div>
+
+<div class="grid2" style="margin-top:18px">
+  <section class="panel">
+    <div class="panel-head">
+      <div><h3>Burn curve</h3><p class="cap">Cumulative tokens at each agent step, per arm.</p></div>
+      <select id="curve-sc" aria-label="Scenario for the curve"></select>
+    </div>
+    <div class="chartbox" id="curve"></div>
+    <div class="legend" id="curve-legend"></div>
+  </section>
+  <section class="panel">
+    <div><h3>Safety against utility</h3><p class="cap">One point per arm. Higher saves more tokens; further left interrupts fewer healthy tasks. Up and to the left is better.</p></div>
+    <div class="chartbox" id="trade"></div>
+  </section>
+</div>
+
+<section class="panel" style="margin-top:18px">
+  <div class="panel-head">
+    <div><h3>Scenario matrix</h3><p class="cap">Each cell shows median tokens across repeats and the step count. Colour shows how the run ended. Click a cell to open the run step by step.</p></div>
+  </div>
+  <div class="legend">
+    <span><i class="box c-agent"></i>agent gave up</span>
+    <span><i class="box c-controller"></i>halted by the controller</span>
+    <span><i class="box c-ceiling"></i>60-step ceiling</span>
+    <span><i class="box c-ok"></i>healthy task completed</span>
+    <span><i class="box c-false"></i>healthy task halted by mistake</span>
+    <span><i class="box" style="background:var(--surface-2);border:1px solid var(--line)"></i>not run yet</span>
+  </div>
+  <div class="tablewrap"><table class="matrix" id="matrix"></table></div>
+</section>
+
+<section class="panel" id="detail" style="margin-top:18px" hidden>
+  <div><h3 id="d-title">Run</h3><p class="cap" id="d-cap"></p></div>
+  <div class="kv" id="d-kv"></div>
+  <div id="d-note"></div>
+  <div class="tablewrap"><table class="steps" id="d-steps"></table></div>
+  <div>
+    <h3>Controller decisions</h3>
+    <p class="cap">Every check with its verdict and reason. This is the evidence trail behind the Results section.</p>
+  </div>
+  <div class="log" id="d-log"></div>
+</section>
+
+
+<div class="stack" style="margin-top:18px">
+  <details class="panel">
+    <summary>How the experiment works</summary>
+    <div style="display:grid;gap:14px;margin-top:6px">
+      <p class="cap">The agent gets a task and a tool, and the tool is broken on purpose. Two numbers are measured: how many tokens the agent burns after the failure, and whether the controller halts healthy work by mistake.</p>
+      <div class="how">
+        <div><b>Failure scenarios</b>15 in three groups: failed service, overspend with no failure, healthy tasks.<code>evaluation/scenarios.json</code></div>
+        <div><b>Fault harness</b>A stub analytics service that fails on command. No real service is called.<code>sandbox/fake_tools.py</code></div>
+        <div><b>Agent loop</b>The model decides, the program calls the tool, the model reads the result.<code>agent/runner.py</code></div>
+        <div><b>Model provider</b>Sends the conversation to the model and gets back the reply and token counts.<code>call_model, parse_action</code></div>
+        <div><b>Controller</b>Gives a verdict on every step: allow, warn or stop. Arms A–G switch mechanisms on one at a time.<code>control/agent_fuel.py</code></div>
+        <div><b>Result files</b>One row per run and one row per controller decision.<code>results/runs.csv, decisions.csv</code></div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<footer>
+  <span>A no control · B account limit · C iteration cap · D run budget · E + loop detector · F + circuit breaker · G Agent Fuel (all)</span>
+  <span>All external tools are stubs with controllable failure modes. No live service was called.</span>
+</footer>
+</div>
+
+<script>
+const SCENARIOS = [
+  [1,"A","Service unavailable"],[2,"A","Empty response"],[3,"A","Authentication error"],[4,"A","Timeout"],
+  [5,"A","Partial response, broken pagination"],[6,"A","Flapping service"],[7,"A","Gradual degradation"],[8,"A","Malformed response"],
+  [9,"B","Unreachable goal"],[10,"B","Conflicting data"],[11,"B","Context accumulation"],
+  [12,"C","Long legitimate task"],[13,"C","Legitimate repetition"],[14,"C","Slow but working service"],[15,"C","Healthy task"]
+];
+const GROUP_OF = Object.fromEntries(SCENARIOS.map(s => [s[0], s[1]]));
+const TITLE_OF = Object.fromEntries(SCENARIOS.map(s => [s[0], s[2]]));
+const GROUPS = {A:"External service failure", B:"Overspend with no service failure", C:"Healthy tasks: any halt here is a false interruption"};
+const ARMS = [["A","no control"],["B","account limit"],["C","iteration cap"],["D","run budget"],["E","+ loop"],["F","+ breaker"],["G","Agent Fuel"]];
+const ARM_COLOR = {A:"var(--burn)", B:"var(--mid-2)", C:"var(--accent)", D:"var(--mid-1)", E:"var(--mid-1)", F:"var(--ctl)", G:"var(--guard)"};
+// The three models the study runs on. Each keeps one line style and one marker everywhere.
+const MODELS = [
+  {id: "qwen2.5:7b", short: "Qwen", dash: "", shape: "circle", note: "local"},
+  {id: "claude-haiku-5-5", short: "Haiku 5.5 · thinking", dash: "7 4", shape: "square", note: "thinking at default"},
+  {id: "claude-haiku-5-5+no-thinking", short: "Haiku 5.5 · no thinking", dash: "2 3", shape: "triangle", note: "thinking disabled"},
+];
+const MECH = {circuit_breaker:"circuit breaker", circuit_breaker_sliding_window:"circuit breaker (window)", loop_detector:"loop detector",
+  loop_detector_result_fingerprint:"loop detector (result)", error_classifier:"error classifier", run_budget:"run budget",
+  time_budget:"time budget", step_cap:"iteration cap", account_budget:"account limit"};
+
+
+const END_LABEL = {agent:"agent gave up", controller:"halted by the controller", ceiling:"60-step ceiling", ok:"task completed", false:"healthy task halted by mistake"};
+const SVGNS = "http://www.w3.org/2000/svg";
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const sv = (tag, attrs, text) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+const fmtNum = n => (typeof n === "number" && isFinite(n) ? Math.round(n).toLocaleString("en-GB") : "—");
+const fmtK = n => Math.abs(n) >= 1000 ? (n / 1000).toLocaleString("en-GB", {maximumFractionDigits: 1}) + "k" : String(Math.round(n));
+const fmtTime = iso => { try { return new Date(iso).toLocaleString("en-GB", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"}); } catch { return iso || ""; } };
+const median = a => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
+function niceMax(v) { if (!(v > 0)) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
+
+let runs = [], selectedId = null;
+let chosen = new Set(MODELS.map(m => m.id));
+const modelInfo = id => MODELS.find(m => m.id === id) || {id, short: id, dash: "4 2 1 2", shape: "diamond", note: ""};
+const allModels = () => { const ids = MODELS.map(m => m.id); runs.forEach(r => { if (r.model && !ids.includes(r.model)) ids.push(r.model); }); return ids; };
+const activeModels = () => allModels().filter(id => chosen.has(id));
+const runsOf = model => runs.filter(r => r.model === model);
+
+function marker(shape, cx, cy, r, fill) {
+  if (shape === "square") return sv("rect", {x: cx - r, y: cy - r, width: 2 * r, height: 2 * r, fill});
+  if (shape === "triangle") return sv("path", {d: `M${cx},${cy - r * 1.2} L${cx + r * 1.1},${cy + r * .8} L${cx - r * 1.1},${cy + r * .8} Z`, fill});
+  if (shape === "diamond") return sv("path", {d: `M${cx},${cy - r * 1.2} L${cx + r * 1.2},${cy} L${cx},${cy + r * 1.2} L${cx - r * 1.2},${cy} Z`, fill});
+  return sv("circle", {cx, cy, r, fill});
+}
+
+// A run's outcome, derived the same way analyse.py reads the CSV columns.
+function outcome(r) {
+  const g = GROUP_OF[r.scenario_id];
+  if (r.halted) return g === "C" ? "false" : "controller";
+  if ((r.steps || 0) >= 60) return "ceiling";
+  if (g === "C" && r.task_completed) return "ok";
+  return "agent";
+}
+function curveOf(r) {
+  if (Array.isArray(r.curve) && r.curve.length) return r.curve;
+  let acc = 0; return (r.trace || []).map(s => (acc += (s.in || 0) + (s.out || 0)));
+}
+
+// --- the two numbers, as defined in evaluation/analyse.py -------------------
+function perArm(rs) {
+  const base = {};
+  rs.filter(r => r.arm === "A" && GROUP_OF[r.scenario_id] !== "C").forEach(r => { base[r.scenario_id + "/" + r.repeat] = r.tokens; });
+  const out = {};
+  ARMS.forEach(([arm]) => {
+    const mine = rs.filter(r => r.arm === arm);
+    const prevented = mine.filter(r => GROUP_OF[r.scenario_id] !== "C" && (r.scenario_id + "/" + r.repeat) in base)
+      .map(r => base[r.scenario_id + "/" + r.repeat] - r.tokens);
+    const control = mine.filter(r => GROUP_OF[r.scenario_id] === "C");
+    out[arm] = {
+      prevented: prevented.length ? mean(prevented) : NaN, prevented_n: prevented.length,
+      falseRate: control.length ? 100 * control.filter(r => r.halted).length / control.length : NaN, control_n: control.length,
+    };
+  });
+  return out;
+}
+
+function renderModelChips() {
+  const box = $("models"); box.replaceChildren();
+  allModels().forEach(id => {
+    const m = modelInfo(id), lab = el("label", "mchip" + (chosen.has(id) ? " on" : "")), cb = el("input");
+    cb.type = "checkbox"; cb.checked = chosen.has(id); cb.id = "m-" + id.replace(/[^a-z0-9]/gi, "_");
+    cb.onchange = () => { cb.checked ? chosen.add(id) : chosen.delete(id); renderModelChips(); renderResults(); };
+    const key = sv("svg", {viewBox: "0 0 18 8", "aria-hidden": "true"});
+    key.append(sv("line", {x1: 0, x2: 18, y1: 4, y2: 4, stroke: "var(--ink-2)", "stroke-width": 1.6, "stroke-dasharray": m.dash || "none"}));
+    const n = runsOf(id).length;
+    lab.append(cb, key, document.createTextNode(m.short), el("small", null, n ? String(n) : "none"));
+    lab.title = `${id} · ${m.note}`;
+    box.append(lab);
+  });
+}
+
+function renderStats() {
+  const ms = activeModels(), rows = ms.map(id => {
+    const rs = runsOf(id), pa = perArm(rs);
+    const burn = rs.filter(r => r.arm === "A" && GROUP_OF[r.scenario_id] !== "C").map(r => r.tokens);
+    return {id, rs, pa, burn: burn.length ? mean(burn) : NaN, burnN: burn.length};
+  });
+  const put = (id, values, cls, emptyNote, note) => {
+    const v = $(id), n = $(id + "-n"); v.replaceChildren();
+    const have = values.filter(x => isFinite(x.v));
+    if (!have.length) { v.className = "v none"; v.textContent = "—"; n.textContent = emptyNote; return; }
+    if (ms.length === 1) { v.className = "v " + cls(have[0].v); v.textContent = have[0].text; n.textContent = note; return; }
+    v.className = "vlist";
+    values.forEach(x => { const s = el("span"); s.append(el("i", null, modelInfo(x.id).short), el("b", null, isFinite(x.v) ? x.text : "—")); v.append(s); });
+    n.textContent = note;
+  };
+  if (!ms.length) { ["s-burn", "s-saved", "s-false"].forEach(id => { $(id).className = "v none"; $(id).textContent = "—"; $(id + "-n").textContent = "tick at least one model above"; }); }
+  else {
+    put("s-burn", rows.map(r => ({id: r.id, v: r.burn, text: fmtNum(r.burn)})), () => "bad",
+      "appears after arm A runs", "mean tokens per run, arm A, failed services");
+    put("s-saved", rows.map(r => ({id: r.id, v: r.pa.G.prevented, text: fmtNum(r.pa.G.prevented) + (r.burn > 0 && isFinite(r.pa.G.prevented) ? ` · ${Math.round(100 * r.pa.G.prevented / r.burn)}%` : "")})),
+      v => v > 0 ? "good" : "none", "appears once A and G have run on the same scenarios", "tokens per run, G against A, and share of A's spend");
+    put("s-false", rows.map(r => ({id: r.id, v: r.pa.G.falseRate, text: Math.round(r.pa.G.falseRate) + "%"})),
+      v => v > 0 ? "bad" : "good", "appears after healthy-task runs (group C)", "arm G, healthy tasks");
+  }
+  const total = rows.reduce((s, r) => s + r.rs.length, 0), plan = 315 * Math.max(ms.length, 1);
+  $("s-done").className = "v"; $("s-done").textContent = String(total);
+  $("s-done-n").textContent = `of ${plan} planned (315 per model)`;
+  $("m-runs").textContent = total; $("m-plan").textContent = plan;
+  $("m-cost").textContent = "$" + rows.reduce((s, r) => s + r.rs.reduce((a, x) => a + (x.cost_usd || 0), 0), 0).toFixed(2);
+}
+
+// --- burn curve ------------------------------------------------------------
+function renderCurve() {
+  const box = $("curve"), leg = $("curve-legend"); box.replaceChildren(); leg.replaceChildren();
+  const sc = Number($("curve-sc").value), series = [];
+  activeModels().forEach(model => ARMS.forEach(([arm, name]) => {
+    const own = runsOf(model).filter(r => r.scenario_id === sc && r.arm === arm).sort((a, b) => (a.repeat || 0) - (b.repeat || 0));
+    const r = own[0], pts = r ? curveOf(r) : [];
+    if (pts.length) series.push({arm, name, model, m: modelInfo(model), run: r, pts});
+  }));
+  if (!series.length) { box.append(el("div", "empty-chart", "No runs of this scenario for the selected models yet. The curve appears after the first run.")); return; }
+  const W = 720, H = 300, L = 56, R = 150, T = 20, B = 250;
+  const maxStep = Math.max(...series.map(s => s.pts.length)), xMax = Math.max(niceMax(maxStep), 5);
+  const yMax = niceMax(Math.max(...series.map(s => s.pts[s.pts.length - 1])));
+  const x = i => L + (i / xMax) * (W - L - R), y = v => B - (v / yMax) * (B - T);
+  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Cumulative tokens per step for each arm and model"});
+  for (let i = 0; i <= 5; i++) {
+    const v = yMax * i / 5;
+    svg.append(sv("line", {x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--line-soft)", "stroke-width": 1}));
+    svg.append(sv("text", {x: L - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 10.5, fill: "var(--ink-3)"}, fmtK(v)));
+    const xv = xMax * i / 5;
+    svg.append(sv("text", {x: x(xv), y: B + 20, "text-anchor": "middle", "font-size": 10.5, fill: "var(--ink-3)"}, String(Math.round(xv))));
+  }
+  svg.append(sv("text", {x: L + (W - L - R) / 2, y: B + 40, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-2)"}, "agent step"));
+  svg.append(sv("line", {x1: L, x2: L, y1: T, y2: B, stroke: "var(--line)"}));
+  svg.append(sv("line", {x1: L, x2: W - R, y1: B, y2: B, stroke: "var(--line)"}));
+  series.forEach(s => {
+    const c = ARM_COLOR[s.arm], d = [`M${x(0)},${y(0)}`, ...s.pts.map((v, i) => `L${x(i + 1)},${y(v)}`)].join(" ");
+    if (s.arm === "A" && series.filter(q => q.arm === "A").length === 1) svg.append(sv("path", {d: d + ` L${x(s.pts.length)},${B} L${x(0)},${B} Z`, fill: "var(--burn-soft)"}));
+    const attrs = {d, fill: "none", stroke: c, "stroke-width": s.arm === "A" || s.arm === "G" ? 2.5 : 1.8, "stroke-linejoin": "round"};
+    if (s.m.dash) attrs["stroke-dasharray"] = s.m.dash;
+    svg.append(sv("path", attrs));
+    svg.append(marker(s.m.shape, x(s.pts.length), y(s.pts[s.pts.length - 1]), 4, c));
+  });
+  // end labels, nudged apart so overlapping finishes stay legible
+  const ends = series.map(s => ({s, y: y(s.pts[s.pts.length - 1])})).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
+  const multi = activeModels().length > 1;
+  ends.forEach(({s, y: ly}) => svg.append(sv("text", {x: W - R + 8, y: ly + 4, "font-size": 11, "font-weight": 600, fill: ARM_COLOR[s.arm]},
+    `${s.arm}${multi ? " " + s.m.short : ""} · ${fmtNum(s.pts[s.pts.length - 1])}`)));
+  box.append(svg);
+  series.forEach(s => {
+    const sp = el("span"), key = sv("svg", {viewBox: "0 0 18 8", width: 18, height: 8, "aria-hidden": "true"});
+    const la = {x1: 0, x2: 18, y1: 4, y2: 4, stroke: ARM_COLOR[s.arm], "stroke-width": 2.4}; if (s.m.dash) la["stroke-dasharray"] = s.m.dash;
+    key.append(sv("line", la));
+    sp.append(key, document.createTextNode(`${s.arm}${multi ? " · " + s.m.short : ""}: ${s.pts.length} steps, ${END_LABEL[outcome(s.run)]}`)); leg.append(sp);
+  });
+}
+
+// --- trade-off -------------------------------------------------------------
+function renderTrade() {
+  const box = $("trade"); box.replaceChildren();
+  const ms = activeModels(), pts = [], missing = new Set();
+  ms.forEach(model => {
+    const pa = perArm(runsOf(model));
+    if (!ARMS.some(([a]) => pa[a].prevented_n)) missing.add("failed-service runs paired with arm A");
+    if (!ARMS.some(([a]) => pa[a].control_n)) missing.add("healthy-task runs (group C)");
+    ARMS.forEach(([arm, name]) => { const p = pa[arm]; if (isFinite(p.prevented) && isFinite(p.falseRate)) pts.push({arm, name, model, m: modelInfo(model), ...p}); });
+  });
+  if (!pts.length) { box.append(el("div", "empty-chart", ms.length ? "Points appear once both numbers exist. Missing: " + [...missing].join(" and ") + "." : "Tick at least one model above.")); return; }
+  const W = 520, H = 340, L = 64, R = 30, T = 24, B = 290;
+  const xMax = Math.max(niceMax(Math.max(...pts.map(p => p.falseRate))), 10);
+  const yLo = Math.min(0, ...pts.map(p => p.prevented)), yHi = niceMax(Math.max(1, ...pts.map(p => p.prevented)));
+  const x = v => L + (v / xMax) * (W - L - R), y = v => B - ((v - yLo) / (yHi - yLo)) * (B - T);
+  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Tokens saved against false interruption rate, one point per arm and model"});
+  svg.append(sv("rect", {x: L, y: T, width: (W - L - R) * 0.3, height: (B - T) * 0.35, fill: "var(--guard-soft)"}));
+  svg.append(sv("text", {x: L + 8, y: T + 16, "font-size": 10.5, "font-weight": 600, fill: "var(--guard)"}, "target"));
+  for (let i = 0; i <= 4; i++) {
+    const v = yLo + (yHi - yLo) * i / 4, xv = xMax * i / 4;
+    svg.append(sv("line", {x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--line-soft)"}));
+    svg.append(sv("text", {x: L - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 10.5, fill: "var(--ink-3)"}, fmtK(v)));
+    svg.append(sv("text", {x: x(xv), y: B + 20, "text-anchor": "middle", "font-size": 10.5, fill: "var(--ink-3)"}, Math.round(xv) + "%"));
+  }
+  if (yLo < 0) svg.append(sv("line", {x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: "var(--ink-3)", "stroke-dasharray": "3 3"}));
+  svg.append(sv("text", {x: L + (W - L - R) / 2, y: B + 40, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-2)"}, "healthy tasks interrupted"));
+  svg.append(sv("text", {x: 16, y: (T + B) / 2, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-2)", transform: `rotate(-90 16 ${(T + B) / 2})`}, "tokens saved per run"));
+  svg.append(sv("line", {x1: L, x2: L, y1: T, y2: B, stroke: "var(--line)"}));
+  svg.append(sv("line", {x1: L, x2: W - R, y1: B, y2: B, stroke: "var(--line)"}));
+  const placed = [], multi = ms.length > 1;
+  pts.forEach(p => {
+    const cx = x(p.falseRate), cy = y(p.prevented), c = ARM_COLOR[p.arm];
+    svg.append(marker(p.m.shape, cx, cy, p.arm === "G" ? 6 : 4.5, c));
+    let ly = cy + 4; while (placed.some(q => Math.abs(q.x - cx) < 70 && Math.abs(q.y - ly) < 13)) ly += 13;
+    placed.push({x: cx, y: ly});
+    const right = cx < W - 150;
+    svg.append(sv("text", {x: right ? cx + 10 : cx - 10, y: ly, "text-anchor": right ? "start" : "end", "font-size": 11, "font-weight": 600, fill: c},
+      `${p.arm} ${multi ? p.m.short : p.name}`));
+  });
+  box.append(svg);
+}
+
+// --- matrix ----------------------------------------------------------------
+function cellButton(here, title, arm, short) {
+  const rep = here[here.length - 1], b = el("button", "cell c-" + outcome(rep)); b.type = "button"; b.dataset.has = "1";
+  if (short) b.append(el("span", "mk", short));
+  const val = el("span"); val.textContent = fmtNum(median(here.map(r => r.tokens)));
+  val.append(el("small", null, `${rep.steps} steps${here.length > 1 ? " · ×" + here.length : ""}`)); b.append(val);
+  b.setAttribute("aria-label", `${title}, arm ${arm}${short ? ", " + short : ""}: ${END_LABEL[outcome(rep)]}, ${rep.steps} steps`);
+  if (rep.id === selectedId) b.classList.add("sel");
+  b.onclick = () => { selectedId = rep.id; renderMatrix(); renderDetail(rep); $("detail").scrollIntoView({behavior: "smooth", block: "start"}); };
+  return b;
+}
+function renderMatrix() {
+  const ms = activeModels(), multi = ms.length > 1, t = $("matrix"); t.replaceChildren();
+  const thead = el("thead"), hr = el("tr"); hr.append(el("th", null, "Scenario"));
+  ARMS.forEach(([c, n]) => { const th = el("th", null, c); th.append(el("small", null, n)); hr.append(th); });
+  hr.append(el("th", null, "What fired in G")); thead.append(hr); t.append(thead);
+  const tb = el("tbody"); let lastG = null;
+  SCENARIOS.forEach(([id, g, title]) => {
+    if (g !== lastG) { const gr = el("tr", "grp"), td = el("td", null, g + " · " + GROUPS[g]); td.colSpan = 9; gr.append(td); tb.append(gr); lastG = g; }
+    const tr = el("tr"), sc = el("td", "sc"); sc.append(el("span", "g", String(id).padStart(2, "0")), document.createTextNode(title)); tr.append(sc);
+    ARMS.forEach(([arm]) => {
+      const td = el("td"), stack = el("div", multi ? "cellstack" : "");
+      ms.forEach(model => {
+        const here = runsOf(model).filter(r => r.scenario_id === id && r.arm === arm).sort((a, b) => (a.repeat || 0) - (b.repeat || 0));
+        const short = multi ? modelInfo(model).short : "";
+        if (here.length) stack.append(cellButton(here, title, arm, short));
+        else { const d = el("div", "cell"); if (short) d.append(el("span", "mk", short)); d.append(el("span", null, "·")); d.setAttribute("aria-label", "not run yet"); stack.append(d); }
+      });
+      if (!ms.length) stack.append(el("div", "cell", "·"));
+      td.append(stack); tr.append(td);
+    });
+    const last = el("td"); last.style.textAlign = "left";
+    const pills = el("div"); pills.style.display = "grid"; pills.style.gap = "3px";
+    ms.forEach(model => {
+      const gr = runsOf(model).filter(r => r.scenario_id === id && r.arm === "G");
+      if (!gr.length) { if (!multi) pills.append(el("span", "empty", "—")); return; }
+      const r = gr[gr.length - 1], o = outcome(r), pre = multi ? modelInfo(model).short + ": " : "";
+      const p = o === "controller" ? el("span", "pill stop", pre + (MECH[r.halt_mechanism] || r.halt_mechanism || "stop"))
+        : o === "false" ? el("span", "pill flag", pre + "false interruption")
+        : o === "ok" ? el("span", "pill pass", pre + "did not intervene")
+        : el("span", "pill warnp", pre + (o === "ceiling" ? "not caught" : "not needed"));
+      pills.append(p);
+    });
+    if (!pills.childNodes.length) pills.append(el("span", "empty", "—"));
+    last.append(pills); tr.append(last); tb.append(tr);
+  });
+  t.append(tb);
+}
+
+// --- run detail ------------------------------------------------------------
+function renderDetail(r) {
+  $("detail").hidden = false;
+  $("d-title").textContent = `${TITLE_OF[r.scenario_id] || r.scenario_id} · arm ${r.arm} · repeat ${r.repeat || 1}`;
+  $("d-cap").textContent = `${modelInfo(r.model).short} (${r.model})${r.ts ? " · " + fmtTime(r.ts) : ""}`;
+  const kv = $("d-kv"); kv.replaceChildren();
+  [["Steps", r.steps], ["Tokens", fmtNum(r.tokens)], ["Cost", r.cost_usd ? "$" + r.cost_usd.toFixed(4) : "$0 (local)"],
+   ["Ended", END_LABEL[outcome(r)]], ["Fired", r.halt_mechanism ? (MECH[r.halt_mechanism] || r.halt_mechanism) : "nothing"],
+   ["Expected", r.expected_mechanism ? (MECH[r.expected_mechanism] || r.expected_mechanism) : "no halt"],
+   ["Mechanism matched", r.mechanism_matched ? "yes" : "no"], ["Task completable", r.task_completable ? "yes" : "no"]]
+    .forEach(([k, v]) => { const d = el("div"); d.append(el("span", "k", k), el("b", null, v == null ? "—" : String(v))); kv.append(d); });
+  const nb = $("d-note"); nb.replaceChildren(); if (r.note) nb.append(el("div", "note-box", r.note));
+  const t = $("d-steps"); t.replaceChildren();
+  const h = el("tr"); ["Step", "Agent replied", "Tool returned", "Tokens in / out"].forEach(x => h.append(el("th", null, x)));
+  const th = el("thead"); th.append(h); t.append(th);
+  const tb = el("tbody");
+  (r.trace || []).forEach(s => {
+    const tr = el("tr"); tr.append(el("td", "n", String(s.step).padStart(2, "0")));
+    const a = el("td"); a.append(el("code", null, s.reply || "")); const res = el("td"); res.append(el("code", null, s.tool_result || "—"));
+    tr.append(a, res, el("td", "n", `${fmtNum(s.in)} / ${fmtNum(s.out)}`)); tb.append(tr);
+  });
+  if (!(r.trace || []).length) { const tr = el("tr"), td = el("td", "empty", "No step-by-step record was kept for this run."); td.colSpan = 4; tr.append(td); tb.append(tr); }
+  t.append(tb);
+  const lg = $("d-log"); lg.replaceChildren();
+  const ds = r.decisions || [];
+  if (!ds.length) { lg.append(el("p", "empty", "No decisions were recorded for this run.")); return; }
+  const EVT = {before_step: "step start", before_tool: "before tool call", after_tool: "after tool call"};
+  ds.forEach(d => {
+    const row = el("div", "lrow"), msg = el("span", "msg");
+    msg.append(document.createTextNode((EVT[d.event] || d.event) + (d.tool ? " · " : "")));
+    if (d.tool) msg.append(el("b", null, d.tool));
+    if (d.failed) msg.append(document.createTextNode(" → error"));
+    if (d.reason) msg.append(document.createTextNode(" · " + d.reason));
+    const cls = d.decision === "stop" ? "stop" : d.decision === "warn" ? "flag" : "pass";
+    const label = (d.decision === "stop" ? "stop" : d.decision === "warn" ? "warn" : "allow") + (d.mechanism ? " · " + (MECH[d.mechanism] || d.mechanism) : "");
+    row.append(el("span", "step", String(d.step).padStart(2, "0")), msg, el("span", "tok", fmtNum(d.tokens_used)), el("span", "pill " + cls, label));
+    lg.append(row);
+  });
+}
+
+// --- work ------------------------------------------------------------------
+function renderNow(d) {
+  const nd = $("now-doing"); nd.replaceChildren();
+  if (!d) { nd.textContent = "No status recorded yet."; $("now-meta").textContent = ""; return; }
+  if (d.active) nd.append(el("span", "pulse"));
+  nd.append(document.createTextNode(d.doing || ""));
+  $("now-meta").textContent = d.updated ? "updated " + fmtTime(d.updated) : "";
+}
+
+function renderResults() {
+  renderStats(); renderCurve(); renderTrade(); renderMatrix();
+  const r = runs.find(x => x.id === selectedId);
+  if (r && chosen.has(r.model)) renderDetail(r); else $("detail").hidden = true;
+}
+function setCurveScenarios() {
+  const sel = $("curve-sc"), cur = sel.value; sel.replaceChildren();
+  SCENARIOS.forEach(([id, , title]) => { const o = el("option", null, `${id} · ${title}`); o.value = String(id); sel.append(o); });
+  const withData = runs.filter(r => chosen.has(r.model)).map(r => r.scenario_id);
+  sel.value = cur ? cur : String(withData.length ? Math.min(...withData) : 1);
+}
+$("curve-sc").addEventListener("change", renderCurve);
+renderModelChips(); setCurveScenarios(); renderResults();
+
+(async () => {
+  const db = await window.claude?.use?.("db");
+  if (!db) { $("now-doing").textContent = "Data is not available in this view. Open the page on claude.ai while signed in."; return; }
+  const fail = () => { $("now-meta").textContent = "Lost the connection to the data. Reload the page."; };
+  db.doc("state/now").onSnapshot(s => renderNow(s.exists ? s.data() : null), fail);
+  db.collection("runs").onSnapshot(s => { runs = s.docs.map(d => ({id: d.id, ...d.data()})); renderModelChips(); setCurveScenarios(); renderResults(); }, fail);
+})();
+</script>

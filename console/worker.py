@@ -1,0 +1,172 @@
+"""Run one batch of Agent Fuel runs for one model configuration.
+
+Started by server.py, one process per configuration, because agent/runner.py
+reads its backend, model and thinking mode from the environment at import.
+Every finished run is appended to data/runs.jsonl in the shape the dashboard
+reads; data/now.json says what is running right now.
+"""
+
+import argparse
+import json
+import os
+import signal
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+CONFIGS = {
+    "qwen": {"label": "qwen2.5:7b", "backend": "ollama",
+             "model": "qwen2.5:7b", "thinking": "on"},
+    "haiku": {"label": "claude-haiku-5-5", "backend": "anthropic",
+              "model": "claude-haiku-5-5", "thinking": "on"},
+    "haiku-nothink": {"label": "claude-haiku-5-5+no-thinking", "backend": "anthropic",
+                      "model": "claude-haiku-5-5", "thinking": "off"},
+}
+
+ap = argparse.ArgumentParser()
+ap.add_argument("--repo", required=True)
+ap.add_argument("--data", required=True)
+ap.add_argument("--config", required=True, choices=sorted(CONFIGS))
+ap.add_argument("--scenarios", required=True, help="comma-separated ids")
+ap.add_argument("--arms", required=True, help="comma-separated codes")
+ap.add_argument("--repeats", type=int, default=1)
+ap.add_argument("--max-cost", type=float, default=1.0, help="stop this batch past this many dollars")
+args = ap.parse_args()
+
+cfg = CONFIGS[args.config]
+# Must be set before agent.runner is imported: it reads them at import time.
+os.environ["AGENT_FUEL_BACKEND"] = cfg["backend"]
+os.environ["AGENT_FUEL_MODEL"] = cfg["model"]
+os.environ["AGENT_FUEL_THINKING"] = cfg["thinking"]
+
+sys.path.insert(0, args.repo)
+import agent.runner as runner  # noqa: E402
+from evaluation import run_experiment as rx  # noqa: E402
+
+DATA = Path(args.data)
+DATA.mkdir(parents=True, exist_ok=True)
+RUNS = DATA / "runs.jsonl"
+NOW = DATA / "now.json"
+
+wanted = {int(x) for x in args.scenarios.split(",") if x}
+arms = [a.strip().upper() for a in args.arms.split(",") if a.strip()]
+scenarios = [s for s in rx.SCENARIOS["scenarios"] if s["id"] in wanted]
+plan = [(s, a, r) for s in scenarios for a in arms for r in range(1, args.repeats + 1)]
+
+spent = {"usd": 0.0, "tokens": 0}
+current = {"label": "", "trace": [], "seen": 0, "index": 0}
+
+
+def stamp():
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def write_now(active, doing):
+    NOW.write_text(json.dumps({
+        "active": active, "doing": doing, "updated": stamp(),
+        "config": cfg["label"], "done": current["index"], "total": len(plan),
+        "spent_usd": round(spent["usd"], 4), "tokens": spent["tokens"],
+    }, ensure_ascii=False), encoding="utf-8")
+
+
+def log(msg):
+    print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
+
+
+def stop(signum, frame):
+    write_now(False, f"Stopped by hand after {current['index']} of {len(plan)}")
+    log("stopped")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, stop)
+
+real_call = runner.call_model
+
+
+def traced_call(messages, model=runner.DEFAULT_MODEL):
+    """Record each step: what the agent said and what came back from the tool."""
+    trace = current["trace"]
+    if trace:
+        new = [m["content"] for m in messages[current["seen"]:] if m["role"] == "user"]
+        trace[-1]["tool_result"] = "\n".join(new)[:2000]
+    text, tin, tout, cost = real_call(messages, model)
+    spent["usd"] += cost
+    spent["tokens"] += tin + tout
+    trace.append({"step": len(trace) + 1, "in": tin, "out": tout, "reply": text[:4000]})
+    current["seen"] = len(messages) + 1  # the runner appends this reply next
+    write_now(True, f"{current['label']} · step {len(trace)}")
+    return text, tin, tout, cost
+
+
+runner.call_model = traced_call
+
+
+def decision_rows(journal):
+    keep = ("step", "event", "decision", "mechanism", "reason", "tokens_used", "tool", "failed")
+    out = []
+    for row in journal:
+        d = {k: row.get(k) for k in keep if row.get(k) not in (None, "")}
+        out.append(d)
+    return out
+
+
+log(f"{cfg['label']}: {len(plan)} runs, spend cap ${args.max_cost:.2f}")
+errors_in_a_row = 0
+
+for i, (scenario, arm, repeat) in enumerate(plan, start=1):
+    if spent["usd"] >= args.max_cost:
+        log(f"spend cap ${args.max_cost:.2f} reached, stopping")
+        write_now(False, f"Stopped: spend cap ${args.max_cost:.2f} reached")
+        sys.exit(0)
+
+    current.update(index=i - 1, trace=[], seen=0,
+                   label=f"scenario {scenario['id']}, arm {arm}, repeat {repeat} ({i} of {len(plan)})")
+    write_now(True, current["label"])
+    log(f"start: {current['label']}")
+    started = time.monotonic()
+    run_id = f"{cfg['label']}-s{scenario['id']:02d}-{arm}-r{repeat}".replace(":", "_").replace("+", "_")
+
+    try:
+        row, journal = rx.one_run(scenario, arm, repeat)
+        errors_in_a_row = 0
+    except Exception as exc:  # an API error ends this run; the batch goes on
+        errors_in_a_row += 1
+        log(f"error: {type(exc).__name__}: {str(exc)[:300]}")
+        doc = {"id": run_id, "model": cfg["label"], "scenario_id": scenario["id"], "arm": arm,
+               "repeat": repeat, "ts": stamp(), "error": f"{type(exc).__name__}: {str(exc)[:500]}",
+               "steps": len(current["trace"]), "trace": current["trace"]}
+        with RUNS.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+        if errors_in_a_row >= 3:
+            log("three errors in a row, stopping")
+            write_now(False, "Stopped: three errors in a row. See the launch log.")
+            sys.exit(1)
+        continue
+
+    trace = current["trace"]
+    curve, acc = [], 0
+    for s in trace:
+        acc += s["in"] + s["out"]
+        curve.append(acc)
+    doc = {
+        "id": run_id, "model": cfg["label"], "scenario_id": scenario["id"], "arm": arm,
+        "repeat": repeat, "ts": stamp(), "steps": row["steps"], "tokens": row["tokens"],
+        "cost_usd": row["cost_usd"], "halted": bool(row["halted"]),
+        "halt_mechanism": row["halt_mechanism"], "halt_reason": row["halt_reason"],
+        "expected_mechanism": row["expected_mechanism"],
+        "mechanism_matched": bool(row["mechanism_matched"]),
+        "task_completed": bool(row["task_completed"]),
+        "task_completable": bool(row["task_completable"]),
+        "seconds": round(time.monotonic() - started, 1),
+        "trace": trace, "curve": curve, "decisions": decision_rows(journal),
+    }
+    with RUNS.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+    current["index"] = i
+    log(f"done: {row['steps']} steps, {row['tokens']} tokens, ${row['cost_usd']:.4f}"
+        + (f", halted by {row['halt_mechanism']}" if row["halted"] else ""))
+
+write_now(False, f"Finished: {len(plan)} runs, {cfg['label']}, spent ${spent['usd']:.2f}")
+log(f"finished, spent ${spent['usd']:.4f}")

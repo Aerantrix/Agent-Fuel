@@ -10,3 +10,7 @@ results/summary.md
 
 # Built for handing to the developer, rebuilt on demand
 agent-fuel-for-developer.zip
+
+# Local console: run data and the page built from dashboard.src.html
+console/data/
+console/dashboard.html
