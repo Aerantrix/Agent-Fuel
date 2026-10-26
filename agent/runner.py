@@ -100,15 +100,27 @@ OLLAMA_NUM_CTX = 32768  # Ollama's default window silently truncates long runs
 ANTHROPIC_RATES = {
     "claude-haiku-5-5": {"base": (0.10, 0.50), "long": (0.50, 2.50),
                          "long_above": 100_000},
+    "claude-haiku-4-5": {"base": (1.00, 5.00), "long": (1.00, 5.00),
+                         "long_above": float("inf")},
 }
+
+# Models that reject a non-default temperature with a 400. They run at the
+# provider's sampling default instead, and the paper states it as a limitation.
+NO_TEMPERATURE = {"claude-haiku-5-5"}
+
+# Haiku 5.5 thinks by default. The sweep runs it both ways:
+# AGENT_FUEL_THINKING=on keeps the default, =off sends thinking disabled.
+# Thinking tokens are billed as output, so they count in output_tokens.
+THINKING = os.environ.get("AGENT_FUEL_THINKING", "on")
+THINKING_MODELS = {"claude-haiku-5-5"}
 
 
 def call_model(messages, model=DEFAULT_MODEL):
     """Send the conversation to the configured backend. See DEVELOPER.md.
 
     Returns (text, input_tokens, output_tokens, cost_usd), with the token
-    counts read from the provider's response and never estimated. Temperature 0,
-    no retries on either backend: retry behaviour is what the experiment
+    counts read from the provider's response and never estimated. Temperature 0
+    where the model accepts it (see NO_TEMPERATURE), no retries on either backend: retry behaviour is what the experiment
     measures. On the local backend cost_usd is 0.0.
     """
     if BACKEND == "ollama":
@@ -145,12 +157,14 @@ def _call_anthropic(messages, model):
     # max_retries=0: an SDK retry would be invisible to the controller.
     # No cache_control anywhere, so nothing is cached.
     client = anthropic.Anthropic(max_retries=0)
-    response = client.messages.create(
-        model=model,
-        max_tokens=4096,
-        temperature=0,
-        messages=messages,
-    )
+    # Room for thinking plus the JSON action; a non-streaming call stays well
+    # under the SDK timeout at this size.
+    params = {"model": model, "max_tokens": 16000, "messages": messages}
+    if model not in NO_TEMPERATURE:
+        params["temperature"] = 0
+    if model in THINKING_MODELS and THINKING == "off":
+        params["thinking"] = {"type": "disabled"}
+    response = client.messages.create(**params)
     text = "".join(b.text for b in response.content if b.type == "text")
     tin = response.usage.input_tokens
     tout = response.usage.output_tokens
