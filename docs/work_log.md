@@ -120,3 +120,45 @@ published on claude.ai for sharing. See `console/server.py`.
 - Simulated clock for latency and time budget (author).
 - Whether arm C is swept over five step caps, which makes 495 runs per model
   instead of 315 (author, `HANDOVER.md`).
+
+### First hosted sweep: Haiku 5.5, thinking at default, 15 × 7 × 1
+
+105 runs, launched from the console, about $0.03 in total. No API errors.
+
+- **The agent does not loop.** 103 of 105 runs ended with a well-formed
+  `{"done": true}`, at most 5 steps and about 200 to 1,800 tokens per run. In
+  every failure scenario the agent tried once or twice, reported that it could
+  not get the data, and stopped. There is no overspend for the controller to
+  prevent at this setting.
+- **The controller fired once.** Scenario 3 (authentication error), arm G: the
+  error classifier stopped the run after one step, 199 tokens against 642 to
+  1,023 in the other arms. That is the intended behaviour.
+- **No false interruptions** on the 28 control-group runs, but every one of
+  them ended within two steps, so this says nothing yet.
+- **Differences between arms are noise, not control.** Scenario 1 spends about
+  1,300 tokens in A to D and about 900 in E to G with nothing fired in any of
+  them: the agent simply took four steps in one and three in the other.
+- **Thinking barely engages.** The first reply is about 34 output tokens, the
+  JSON action and little else.
+- One protocol slip: scenario 4, arm B, the reply began
+  `timeout is transient; retry once.` before the JSON. `parse_action` returns
+  `None` as specified, so a run the agent meant to continue was recorded as
+  finished.
+
+Defects in the harness, found from the replies and not changed:
+
+- **The multi-domain tasks never name their domains.** `TASKS` carries a
+  `domains` list for `ten_domains`, `twenty_domains` and `forty_domains`, but
+  `run_agent` sends only `spec["prompt"]`. In scenarios 11, 12 and 13 the agent
+  answered in one step that no domains were given and asked for the list. Those
+  three scenarios, including the scenario 13 false-positive test for the loop
+  detector, did not test anything.
+- **Scenario 9 is reachable.** Its failure mode is `healthy`, so the tool
+  returns normal metrics for January 1987 and the agent reports them with a
+  caveat instead of chasing an impossible goal.
+
+Consequence: in its current form the sweep cannot answer the research
+question, because neither model overspends and three scenarios do not run as
+designed. Raised with the author: fix the two harness defects, then decide
+whether the tasks should push the agent to persist, or whether "current
+models give up by themselves" is reported as the finding.
