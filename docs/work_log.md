@@ -171,3 +171,31 @@ prompt of any task with more than one domain (`ten_domains`, `twenty_domains`,
 unchanged, so scenarios 1 to 10, 14 and 15 see the same text as before.
 Retested by re-running scenarios 11 to 13 on Haiku 5.5 under all seven arms.
 Scenario 9 (reachable "impossible" period) is still open with the author.
+
+### Scenarios 11 to 13 after the fix: Haiku 5.5, thinking at default, 7 arms
+
+21 runs, $0.07. The long tasks now reach the tool and the second research
+number has data for the first time.
+
+- **The tasks complete without control.** Arm A: 10 domains in 11 steps
+  (9K tokens), 20 domains in 21 steps (30K), 40 domains in 41 steps (105K).
+- **The iteration cap interrupts healthy work, as predicted.** Arm C (15 steps)
+  halted both the 20-domain and the 40-domain task at step 15.
+- **The run budget interrupts healthy work too.** With `max_tokens: 50000` in
+  `policies.yaml`, arms D, E, F and G all halted the 40-domain task at step 28
+  or 29 with `run_budget`. The legitimate task needs about 105K tokens, so
+  Agent Fuel itself scores a false interruption on scenario 13. The threshold
+  was never measured; changing it after seeing this result would tune the
+  controller on its own test set, so it is raised with the author rather than
+  changed.
+- **The loop detector passed its trap.** Forty calls to forty domains were
+  never read as a loop in E, F or G (protected decision 1 holds).
+- **Scenario 11 is not an overspend.** Twenty domains finish legitimately at
+  30K tokens, under the run budget, so there is nothing to stop and
+  `expected_mechanism: run_budget` will not match.
+- **A new harness artefact.** The fake tool returns the same metrics for every
+  domain. In three runs (11 G, 12 C, 13 B) the agent noticed that site2 was
+  identical to site1, said so in prose, and the non-JSON reply ended the run;
+  in 11 D it gave up at step 7 for the same reason. Those runs differ from
+  their neighbours because of the stub, not the controller. Suggested to the
+  author: vary the metrics per domain.
