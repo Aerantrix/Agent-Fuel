@@ -162,3 +162,12 @@ question, because neither model overspends and three scenarios do not run as
 designed. Raised with the author: fix the two harness defects, then decide
 whether the tasks should push the agent to persist, or whether "current
 models give up by themselves" is reported as the finding.
+
+### Fix: the multi-domain tasks now name their domains
+
+With the user's go-ahead, `run_agent` appends `The domains are: ...` to the
+prompt of any task with more than one domain (`ten_domains`, `twenty_domains`,
+`forty_domains`). Single-domain prompts already name `example.com` and are
+unchanged, so scenarios 1 to 10, 14 and 15 see the same text as before.
+Retested by re-running scenarios 11 to 13 on Haiku 5.5 under all seven arms.
+Scenario 9 (reachable "impossible" period) is still open with the author.

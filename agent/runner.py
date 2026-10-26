@@ -183,8 +183,14 @@ def _anthropic_cost(model, input_tokens, output_tokens):
 def run_agent(task, tools, controller, step_cap=None, account_cap=None):
     """Run one agent episode under one controller configuration."""
     spec = TASKS[task]
+    prompt = spec["prompt"]
+    # The multi-domain prompts say "ten domains" without naming them. An earlier
+    # version sent only the prompt, and the agent stopped at step 1 asking for
+    # the list, so scenarios 11 to 13 never reached the tool. See docs/work_log.md.
+    if len(spec["domains"]) > 1:
+        prompt += " The domains are: " + ", ".join(spec["domains"]) + "."
     messages = [{"role": "user",
-                 "content": action_protocol(tools) + "\n" + spec["prompt"]}]
+                 "content": action_protocol(tools) + "\n" + prompt}]
     completed = False
 
     while controller.step < MAX_STEPS_ABSOLUTE:
