@@ -1,8 +1,9 @@
 # The experiment itself
 pyyaml>=6.0
 
-# Add your model provider's SDK here. For the local backend, Ollama needs no
-# package: it is reached over HTTP on localhost.
+# The hosted backend. The local backend, Ollama, needs no package: it is
+# reached over HTTP on localhost.
+anthropic>=0.125
 
 # Analysis only (evaluation/analyse.py). Not needed to run the sweep.
 pandas>=2.0

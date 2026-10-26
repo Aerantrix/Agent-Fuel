@@ -12,6 +12,7 @@ its environment, and never sent to the page.
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -25,8 +26,16 @@ HOME = Path.home()
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 REPO = ROOT.parent  # the Agent Fuel repository this folder lives in
-PYTHON = HOME / ".venvs" / "agent-fuel" / "bin" / "python"
-OLLAMA = HOME / ".local" / "ollama" / "ollama"
+PYTHON = sys.executable  # the environment that runs this server also runs the worker
+
+
+def ollama_binary():
+    """Ollama from the installer (on PATH) or a manual install in ~/.local/ollama."""
+    for candidate in (shutil.which("ollama"), HOME / ".local" / "ollama" / "ollama",
+                      Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe"):
+        if candidate and Path(candidate).is_file():
+            return str(candidate)
+    return None
 KEYFILE = HOME / ".config" / "agent-fuel" / "anthropic_key"
 PORT = int(os.environ.get("AGENT_FUEL_CONSOLE_PORT", "8790"))
 
@@ -55,8 +64,12 @@ def ensure_ollama():
     if ollama_up():
         return True
     say("starting Ollama…")
-    subprocess.Popen([str(OLLAMA), "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                     start_new_session=True)
+    binary = ollama_binary()
+    if not binary:
+        say("Ollama is not installed")
+        return False
+    detached = {"creationflags": 0x00000008} if os.name == "nt" else {"start_new_session": True}
+    subprocess.Popen([binary, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **detached)
     for _ in range(30):
         time.sleep(0.5)
         if ollama_up():
@@ -85,12 +98,14 @@ def launch_next():
     elif not ensure_ollama():
         say("Ollama did not start, skipping this model")
         return launch_next()
-    cmd = [str(PYTHON), "-u", str(ROOT / "worker.py"), "--repo", str(REPO), "--data", str(DATA),
+    env["PYTHONIOENCODING"] = "utf-8"
+    cmd = [PYTHON, "-u", str(ROOT / "worker.py"), "--repo", str(REPO), "--data", str(DATA),
            "--config", config, "--scenarios", ",".join(map(str, p["scenarios"])),
            "--arms", ",".join(p["arms"]), "--repeats", str(p["repeats"]),
            "--max-cost", str(p["max_cost"])]
     proc = subprocess.Popen(cmd, cwd=REPO, env=env, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True, bufsize=1)
+                            stderr=subprocess.STDOUT, text=True, bufsize=1,
+                            encoding="utf-8", errors="replace")
     job["proc"] = proc
     threading.Thread(target=pump, args=(proc,), daemon=True).start()
 
@@ -99,6 +114,11 @@ def pump(proc):
     for line in proc.stdout:
         say(line)
     proc.wait()
+    # A worker stopped on Windows cannot write its own final status.
+    now = load_now()
+    if now.get("active"):
+        now.update(active=False, doing="Stopped")
+        (DATA / "now.json").write_text(json.dumps(now, ensure_ascii=False), encoding="utf-8")
     with lock:
         if job["proc"] is proc:
             launch_next()

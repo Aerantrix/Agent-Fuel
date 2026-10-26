@@ -199,3 +199,26 @@ number has data for the first time.
   in 11 D it gave up at step 7 for the same reason. Those runs differ from
   their neighbours because of the stub, not the controller. Suggested to the
   author: vary the metrics per domain.
+
+### Team setup: README from zero, console runs on any Mac or Windows machine
+
+The team is five people, two on Windows, each with their own API key. Decided
+with the user: changes and results go through pull requests (no branch
+protection on this plan, so it is a team rule), and the model set stays fixed
+at Qwen 2.5 7B and Haiku 5.5 with and without thinking; a multi-provider model
+page was considered and dropped.
+
+- README rewritten with a "Getting started from zero" part: accounts, VS Code
+  and an assistant (permission modes checked against the Claude Code docs),
+  Git, Python environment in `.venv`, the local model through Ollama, a
+  personal API key with a workspace spend limit, starting the console, and
+  pull-request rules with requests to paste to the assistant.
+- `console/server.py` no longer assumes this machine's paths: it runs the
+  worker with its own Python and finds Ollama on PATH, in `~/.local/ollama` or
+  in the Windows install folder. Worker output is read as UTF-8, and a worker
+  stopped on Windows no longer leaves the status as running.
+- `anthropic` added to `requirements.txt`; `.venv/` ignored.
+
+Checked on this Mac with a free Qwen run through the console. The Windows
+steps and the PowerShell key command are untested until a team member on
+Windows runs them.
