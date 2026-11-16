@@ -394,3 +394,38 @@ were hidden, which removed the controller from view; `analyse.py` now writes
 console serves them with a dashed border where no live run of the cell
 exists. `console/merge_runs.py` folds run files written elsewhere into
 `runs.jsonl`, superseded records going to `superseded.jsonl`.
+
+### Real prompts on the built-in path, and two things the first runs showed
+
+Three more prompts run: SWE-agent (P07), Codex CLI (P08) and Goose (P09),
+through a second path to both providers where our tool goes to the API as a
+schema and the call comes back structured (`agent/real_prompts.py`,
+`NativeAdapter`; `runner._call_native`). Each reply is recorded as JSON
+`{"text", "tool_calls"}`. Checked live on Qwen through Ollama. On the
+Anthropic side the first batch lost nine runs to a 400: when the model
+emits two `tool_use` blocks in one reply, every id must get a `tool_result`
+in the next turn; the extra calls are now answered with the one-call notice
+as an error result, tool results first in the turn.
+
+- **Qwen under LangChain's MRKL prompt is the one real-prompt runaway so
+  far**: 60 steps on the auth error, 86,846 tokens on average over the six
+  refusal scenarios; Agent Fuel takes 98 percent of the excess. Under the
+  other five prompts both models stop in two or three steps, as under
+  lenient and base.
+- **Calls to tools that do not exist bypass the controller.** After two
+  timeouts under LangChain, Qwen invents tools ("Check service status",
+  "Contact support"); the runner answers "No such tool" without calling
+  `before_tool`/`after_tool`, so the loop detector never sees them and the
+  run is *not covered*. Open decision: route unknown-tool calls through the
+  controller as failed calls, which is what a framework's tool layer would
+  show it.
+- **SWE-agent's instance template is about code**, "I've uploaded a python
+  code repository ... consider the following PR description". Qwen reads
+  our task as a coding task and calls `analytics` with `path` and `content`,
+  gets the bad-argument error three times and gives up. A property of that
+  prompt on our task, to state beside its rows.
+- The retry hint in service errors, removed on 9 November to keep the
+  prompt levels the only difference, is a lever of its own that the sweep
+  no longer measures; Ahrefs documents no such text. Proposed as a fourth
+  condition (base prompt, error text with "try again later") rather than
+  put back into the scenarios.
