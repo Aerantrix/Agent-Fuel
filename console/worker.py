@@ -34,6 +34,8 @@ ap.add_argument("--config", required=True, choices=sorted(CONFIGS))
 ap.add_argument("--scenarios", required=True, help="comma-separated ids")
 ap.add_argument("--arms", required=True, help="comma-separated codes")
 ap.add_argument("--repeats", type=int, default=1)
+ap.add_argument("--repeat-ids", default="",
+                help="comma-separated repeat numbers to run instead of 1..repeats, e.g. 2,3 to fill gaps")
 ap.add_argument("--max-cost", type=float, default=1.0, help="stop this batch past this many dollars")
 ap.add_argument("--condition", default="base", choices=["lenient", "base", "strict"])
 ap.add_argument("--real-prompt", default="",
@@ -74,7 +76,8 @@ NOW = DATA / "now.json"
 wanted = {int(x) for x in args.scenarios.split(",") if x}
 arms = [a.strip().upper() for a in args.arms.split(",") if a.strip()]
 scenarios = [s for s in rx.SCENARIOS["scenarios"] if s["id"] in wanted]
-plan = [(s, a, r) for s in scenarios for a in arms for r in range(1, args.repeats + 1)]
+repeat_ids = [int(x) for x in args.repeat_ids.split(",") if x.strip()] or list(range(1, args.repeats + 1))
+plan = [(s, a, r) for s in scenarios for a in arms for r in repeat_ids]
 
 spent = {"usd": 0.0, "tokens": 0}
 current = {"label": "", "trace": [], "seen": 0, "index": 0}
