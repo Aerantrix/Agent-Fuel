@@ -360,3 +360,37 @@ detector and were already set aside.
 - Stand defects, counted as not checked: Qwen answers the ten- and forty-site
   tasks with every call in one reply at lenient and base (16 runs); three
   Haiku thinking-low strict replies start with prose before the JSON.
+
+### Later on 16 November: the parser, the real prompts, the console
+
+**The stand was ending runs the agent meant to continue.** `parse_action`
+returned None on anything but a bare JSON object and the runner read that
+as "finished". Counted over the sweep: 81 of 431 runs ended that way, the
+reply holding a tool call the parser could not read (a sentence before the
+JSON, several calls in one reply). Haiku 5.5 without thinking under strict
+lost 28 of 36 refusal runs to it, so the earlier reading "no-thinking Haiku
+gives up in two or three steps whatever the prompt" is withdrawn: it was the
+stand stopping it. The parser now takes the first tool call in the reply and
+records the departure from the protocol (`prose_around_json`,
+`several_calls`, `no_json`) in the run record; on several calls the agent is
+told only the first was executed. The 81 runs stay marked *not checked* until
+the Haiku variants are rerun (`launch.py` in the session scratchpad; Qwen is
+left as it was, few of its runs were affected).
+
+**Real prompts.** Ten framework defaults collected and labelled in the
+`real-prompts` branch (PR #1), with the Ahrefs API responses. The stand runs
+three of them, the text protocols: `AGENT_FUEL_REAL_PROMPT=<file>` (worker
+`--real-prompt`) puts the framework's prompt in place of ours through an
+adapter in `agent/real_prompts.py` that renders our tool the framework's way
+and reads replies in its format (LlamaIndex ReAct, LangChain MRKL,
+smolagents JSON actions). The run is recorded with the file's name as its
+condition. The seven built-in-tool-calling prompts need a native tool path
+and are not run. First runs: Qwen and Haiku thinking-low, 9 scenarios, one
+repeat, arm A.
+
+**The console shows the controller again.** Columns of arms nobody had run
+were hidden, which removed the controller from view; `analyse.py` now writes
+`console/data/computed.jsonl`, one record per arm A run and control, and the
+console serves them with a dashed border where no live run of the cell
+exists. `console/merge_runs.py` folds run files written elsewhere into
+`runs.jsonl`, superseded records going to `superseded.jsonl`.
