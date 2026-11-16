@@ -460,3 +460,10 @@ author's decision, our own prompt counts as the tenth. All behave like
 lenient and base except Qwen under LangChain's MRKL prompt, the one
 runaway. Tails on the long scenarios were still running when this was
 written and are merged as they land.
+
+**Decision (author, 16 November, evening).** The 50,000-token run budget
+stays. Agent Fuel is compared as it is, and that it spoils the forty-site
+control task is reported as a weakness of the controller, with the
+"mechanisms only" row kept as the explanation. Setting the budget relative
+to the longest honest task is future work. Unknown-tool calls through the
+controller: still open.
