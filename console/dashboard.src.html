@@ -70,7 +70,8 @@ select { font: 500 12px var(--data); padding: 3px 6px; border-radius: 3px; borde
 .mchip small { color: var(--ink-3); font-size: 10.5px; }
 .mchip:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 #conds, #temps { margin-bottom: 6px; }
-#temps .lbl { font: 500 11px var(--data); color: var(--ink-3); align-self: center; }
+#temps .lbl, #conds .lbl { font: 500 11px var(--data); color: var(--ink-3); align-self: center; min-width: 150px; text-align: right; }
+#conds .frow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; margin-bottom: 6px; }
 #conds .mchip.on { border-color: var(--accent); }
 .vlist { display: grid; gap: 2px; font-family: var(--data); font-size: 13px; font-variant-numeric: tabular-nums; }
 .vlist span { display: flex; justify-content: space-between; gap: 10px; }
@@ -361,13 +362,22 @@ function renderConds() {
     }
   });
   const box = $("conds"); box.replaceChildren();
-  CONDITIONS.forEach(c => {
+  // Two labelled rows: our prompt levels (and their variants), then the
+  // real framework prompts in file order.
+  const ours = CONDITIONS.filter(c => !/^P\d/.test(c.id));
+  const real = CONDITIONS.filter(c => /^P\d/.test(c.id)).sort((a, b) => a.id.localeCompare(b.id));
+  const chip = c => {
     const lab = el("label", "mchip" + (conds.has(c.id) ? " on" : "")), rb = el("input");
     rb.type = "checkbox"; rb.checked = conds.has(c.id); rb.id = "cond-" + c.id;
     rb.onchange = () => { rb.checked ? conds.add(c.id) : conds.delete(c.id); applyFilter(); refresh(); };
     const n = allRuns.filter(r => condOf(r) === c.id && (tempOf(r) === "default" || temps.has(tempOf(r)))).length;
     lab.append(rb, document.createTextNode(c.short), el("small", null, n ? String(n) : "none"));
-    lab.title = c.note; box.append(lab);
+    lab.title = c.note; return lab;
+  };
+  [["Our prompt levels", ours], ["Real framework prompts", real]].forEach(([title, list]) => {
+    if (!list.length) return;
+    const row = el("div", "frow"); row.append(el("span", "lbl", title));
+    list.forEach(c => row.append(chip(c))); box.append(row);
   });
   const tb = $("temps"); tb.replaceChildren(el("span", "lbl", "Qwen temperature"));
   TEMPS.forEach(t => {
