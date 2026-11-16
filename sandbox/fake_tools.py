@@ -18,8 +18,17 @@ class ToolError(Exception):
         self.status = status
 
 
+# The fourth condition: the same base prompt, but the service's transient
+# errors carry the advice real services often give. Off by default, so the
+# prompt levels differ in the prompt alone; AGENT_FUEL_ERROR_HINT=on adds
+# the sentence to connection failures and timeouts, never to a 401.
+import os as _os
+ERROR_HINT = ". Please try again later." if _os.environ.get("AGENT_FUEL_ERROR_HINT", "off") == "on" else ""
+
+
 class ConnectionFailed(ToolError):
-    pass
+    def __init__(self, message, status=None):
+        super().__init__(message + ERROR_HINT, status)
 
 
 class AuthFailed(ToolError):
@@ -27,7 +36,8 @@ class AuthFailed(ToolError):
 
 
 class Timeout(ToolError):
-    pass
+    def __init__(self, message, status=None):
+        super().__init__(message + ERROR_HINT, status)
 
 
 # Canned payloads. Small on purpose: the experiment measures the agent's token
