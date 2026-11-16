@@ -27,7 +27,19 @@ API (Ahrefs).
 | P07 | SWE-agent | `config/default.yaml` | 2025-09-15 | MIT | Silent | None | Silent | No | Built-in |
 | P08 | Codex CLI | `codex-rs/models-manager/prompt.md` | 2026-06-23 | Apache-2.0 | Mixed | Retry, Limit stated, Try another way | Human available | Yes | Built-in |
 | P09 | Goose | `crates/goose/src/prompts/system.md` + `agents/moim.rs` | 2026-08-10 | Apache-2.0 | Silent | None | Human available | Yes | Built-in |
+| P12 | AutoGPT classic | `classic/original_autogpt/autogpt/agents/prompt_strategies/one_shot.py` + components | 2026-04-03 | MIT (classic/) | Allowed | None | Human available | Yes | Built-in |
+
+Two more were read and kept in the folder as extras, outside the ten:
+
+| # | Framework | Saved from | Commit | Licence | A | B | C | D | E |
+|---|---|---|---|---|---|---|---|---|---|
 | P10 | AutoGen AssistantAgent | `…/autogen_agentchat/agents/_assistant_agent.py` | 2025-08-31 | MIT (code) | Silent | None | Silent | No | Built-in |
+| P11 | Gemini CLI | `packages/core/src/prompts/snippets.ts` | 2026-09-29 | Apache-2.0 | Mixed | Try another way, Limit stated | Human available | Yes | Built-in |
+
+AutoGen was swapped out for AutoGPT classic because the set was one Allowed
+short and had Silent to spare; AutoGen's prompt is one sentence and its
+repository is in maintenance mode. Gemini CLI was read in the hope of a
+Forbidden and turned out Mixed.
 
 Every label has its quote in the card. Where the card says Silent, None or No,
 no sentence in the saved text supports another value.
@@ -36,19 +48,24 @@ no sentence in the saved text supports another value.
 
 | Requirement | At least | Found | Status |
 |---|---|---|---|
-| A: Allowed | 2 | 1 (P03) | short by one |
-| A: Silent | 2 | 7 | met |
-| A: Forbidden | 2 | 0 | **not met**; P06 and P08 are Mixed: each tells the agent to keep going and, elsewhere, to stop and ask |
+| A: Allowed | 2 | 2 (P03, P12) | met |
+| A: Silent | 2 | 6 | met |
+| A: Forbidden | 2 | 0 | **not met**; P06, P08 and the extra P11 are Mixed: each tells the agent to keep going and, elsewhere, to stop and ask |
 | Call format: plain text (Text or JSON in the reply) | 3 | 3 (P01, P03, P04) | met |
 | Call format: built-in tool calling | 3 | 7 | met |
 
-The gap on A is recorded rather than filled: in the ten defaults read, no
-prompt forbids giving up outright. The two that come closest (Codex: "Please
+The gap on A is recorded rather than filled: in the twelve defaults read, no
+prompt forbids giving up outright. The three that come closest (Codex: "Please
 keep going until the query is completely resolved"; OpenHands: "don't stop if
-the application is not installed") both also instruct the agent to stop and
-confirm with the user in another sentence, so by the labelling rules they are
-Mixed, not Forbidden. Two further candidates (Gemini CLI, AutoGPT classic) are
-being read for a possible swap; see the end of this file.
+the application is not installed"; Gemini CLI: "persist through errors and
+obstacles … until a successful, verified outcome is achieved") all also
+instruct the agent to stop and confirm with the user in another sentence, so
+by the labelling rules they are Mixed, not Forbidden. The only outright
+keep-going sentence found, "you are an agent - please keep going until the
+user's query is completely resolved", sits in Gemini CLI's legacy prompt for
+older models, which is not the default. This is itself a finding for the
+study: the "unattended job, do not finish without the data" pressure of our
+strict level is rarer in shipped defaults than the study assumed.
 
 ## What the ten have in common
 
