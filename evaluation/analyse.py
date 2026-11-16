@@ -197,15 +197,21 @@ def controls():
 
 
 def defect_of(r):
-    """Why the stand, not the agent, ended this run at step 1; None if it didn't."""
-    if r["steps"] != 1 or not r["trace"]:
+    """Why the stand, not the agent, ended this run; None if the agent ended it.
+
+    A run ends when parse_action reads no tool call in the reply. When that
+    reply does contain a tool call that the parser could not read (several
+    calls in one reply, or prose before the JSON), the stand ended the run,
+    not the agent, and the run is counted as not checked.
+    """
+    if not r["trace"] or r.get("halted"):
         return None
-    reply = r["trace"][0]["reply"]
+    reply = r["trace"][-1]["reply"]
+    if parse_action(reply) is not None or '"tool"' not in reply:
+        return None
     if reply.count('"tool"') > 1:
-        return "several calls in one reply, read as finished"
-    if parse_action(reply) is None and not reply.strip().startswith("{"):
-        return "first reply is not JSON, read as finished"
-    return None
+        return f"several calls in one reply at step {r['steps']}, read as finished"
+    return f"reply at step {r['steps']} is not plain JSON, read as finished"
 
 
 def compute(runs):
