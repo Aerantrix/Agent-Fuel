@@ -347,6 +347,13 @@ const seriesKey = (model, c, t) => [model, conds.size > 1 ? c : null, temps.size
 function applyFilter() { saveTicks(); runs = allRuns.filter(visible).map(r => ({...r, series: seriesKey(r.model, condOf(r), tempOf(r))})); }
 function setRuns(list) { allRuns = list; applyFilter(); }
 function renderConds() {
+  // Conditions the data holds beyond our three levels are real framework
+  // prompts (docs/real-prompts, recorded under the file's name); add them.
+  new Set(allRuns.map(condOf)).forEach(id => {
+    if (id && !CONDITIONS.some(c => c.id === id))
+      CONDITIONS.push({id, short: id.replace(/^P(\d+)_/, "P$1 ").replace(/_/g, " "),
+                       note: "a real framework's default prompt in place of ours (docs/real-prompts/" + id + ".txt)"});
+  });
   const box = $("conds"); box.replaceChildren();
   CONDITIONS.forEach(c => {
     const lab = el("label", "mchip" + (conds.has(c.id) ? " on" : "")), rb = el("input");
