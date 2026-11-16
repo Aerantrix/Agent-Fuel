@@ -316,8 +316,80 @@ class SWEAgent(NativeAdapter):
         return f"OBSERVATION:\n{exc}"
 
 
-ADAPTERS = {"P01": Smolagents, "P03": LlamaIndexReAct, "P04": LangChainMRKL,
-            "P07": SWEAgent, "P08": CodexCLI, "P09": Goose}
+class OpenHands(NativeAdapter):
+    """P06. The default sections already assembled in the saved file; the
+    error header is what the SDK prepends to a failed observation."""
+    name = "openhands"
+
+    def system_prompt(self):
+        return self.text
+
+    @staticmethod
+    def error(exc):
+        return f"[An error occurred during execution.]\n{exc}"
+
+
+class Cline(NativeAdapter):
+    """P05. The act-mode template with its variables filled the way the CLI
+    fills them, and MODE_TAG_INSTRUCTIONS (the second piece of the file)
+    in {{CLINE_RULES}} as when no user rules exist; {{CLINE_METADATA}} is
+    empty for a non-Cline provider. The user message is wrapped in the
+    <user_input mode="act"> tag the prompt describes."""
+    name = "cline"
+
+    def _pieces(self):
+        parts = re.split(r"^===[^\n]*===\n", self.text, flags=re.M)
+        return parts[0].rstrip("\n"), (parts[1].strip("\n") if len(parts) > 1 else "")
+
+    def system_prompt(self):
+        import datetime
+        template, rules = self._pieces()
+        fill = {"PLATFORM_NAME": "macOS", "CURRENT_DATE": datetime.date.today().isoformat(),
+                "IDE_NAME": "Cline CLI", "CWD": "/workspace", "CLINE_RULES": rules, "CLINE_METADATA": ""}
+        for k, v in fill.items():
+            template = template.replace("{{" + k + "}}", v)
+        return template + "\n"
+
+    def messages(self, task):
+        return [{"role": "system", "content": self.system_prompt()},
+                {"role": "user", "content": f'<user_input mode="act">{task}</user_input>'}]
+
+
+# CrewAI's role_playing slice has holes the developer fills: the agent's
+# role, goal and backstory. Ours, one sentence each, so the run is defined.
+CREWAI_PROFILE = {
+    "role": "Web Analytics Analyst",
+    "goal": "Report the analytics the task asks for, accurately and without inventing data",
+    "backstory": "You pull metrics from the analytics service and summarise them for the team.",
+}
+CREWAI_EXPECTED_OUTPUT = "A short summary of the 30-day trend, or a clear statement of what could not be retrieved."
+
+
+class CrewAI(NativeAdapter):
+    """P02. The native path of CrewAI (the default LLM supports function
+    calling): system = slices.role_playing with the profile above, user =
+    slices.native_task with the task and slices.expected_output."""
+    name = "crewai"
+
+    def _slices(self):
+        return json.loads(self.text)["slices"]
+
+    def system_prompt(self):
+        return self._slices()["role_playing"].format(**CREWAI_PROFILE)
+
+    def messages(self, task):
+        s = self._slices()
+        expected = s.get("expected_output", "").format(expected_output=CREWAI_EXPECTED_OUTPUT)
+        user = s["native_task"].format(input=task + expected)
+        return [{"role": "system", "content": self.system_prompt()}, {"role": "user", "content": user}]
+
+    @staticmethod
+    def error(exc):
+        return f"Error executing tool: {exc}"
+
+
+ADAPTERS = {"P01": Smolagents, "P02": CrewAI, "P03": LlamaIndexReAct, "P04": LangChainMRKL,
+            "P05": Cline, "P06": OpenHands, "P07": SWEAgent, "P08": CodexCLI, "P09": Goose}
 
 
 def load(path):
