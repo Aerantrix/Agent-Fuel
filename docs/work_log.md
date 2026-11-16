@@ -467,3 +467,9 @@ control task is reported as a weakness of the controller, with the
 "mechanisms only" row kept as the explanation. Setting the budget relative
 to the longest honest task is future work. Unknown-tool calls through the
 controller: still open.
+
+**Data at the end of 16 November.** 636 arm A runs in `console/data/runs.jsonl`,
+13 conditions: lenient, base, strict, base+hint, and nine real prompts (7–9
+of 9 scenarios per model and prompt; the gaps are single API or Ollama
+timeouts). All Haiku variants rerun with the fixed parser; no run ended by
+the stand. Pull requests: #1 real prompts, #2 stand v2.
