@@ -5,6 +5,7 @@ scenario being run and misbehaves accordingly, so every scenario is reproducible
 and costs nothing but the agent's own tokens.
 """
 
+import hashlib
 import time
 from dataclasses import dataclass, field
 
@@ -31,14 +32,24 @@ class Timeout(ToolError):
 
 # Canned payloads. Small on purpose: the experiment measures the agent's token
 # use, not the size of the fixtures.
-GOOD_METRICS = {
-    "domain": "example.com",
-    "period": "30d",
-    "organic_traffic": 128_400,
-    "backlinks": 9_312,
-    "keywords": 4_118,
-    "truncated": False,
-}
+def good_metrics(domain, period):
+    """Healthy metrics for one domain and period.
+
+    The numbers differ from domain to domain and never from run to run. An
+    earlier version returned one payload for every domain, and an agent
+    ranking ten sites noticed they were identical and quit. See
+    docs/work_log.md.
+    """
+    seed = int(hashlib.sha1(f"{domain}|{period}".lower().encode("utf-8")).hexdigest(), 16)
+    return {
+        "domain": domain,
+        "period": period,
+        "organic_traffic": 20_000 + seed % 180_000,
+        "backlinks": 1_000 + (seed >> 20) % 19_000,
+        "keywords": 500 + (seed >> 40) % 7_500,
+        "truncated": False,
+    }
+
 
 PARTIAL_METRICS = {
     "domain": "example.com",
@@ -64,12 +75,10 @@ class FakeAnalytics:
         unavailable    connection error on every call      (scenario 1)
         empty          valid response, zero records        (scenario 2)
         auth           401 on every call                   (scenario 3)
-        timeout        slow, then a timeout error          (scenario 4)
+        timeout        a timeout error on every call       (scenario 4)
         partial        truncated page, cursor never moves  (scenario 5)
         flapping       alternates success and failure      (scenario 6)
-        slow_degrade   correct, but slower every call      (scenario 7)
         malformed      HTML where JSON was expected        (scenario 8)
-        slow_healthy   correct, consistently slow          (scenario 14)
     """
 
     failure_mode: str = "healthy"
@@ -82,17 +91,17 @@ class FakeAnalytics:
         if self.sleep_enabled:
             time.sleep(seconds)
 
-    def get_metrics(self, domain, period="30d"):
+    def get_metrics(self, domain, period="30d", cursor=None):
         self.calls += 1
-        self.log.append((self.calls, domain, period))
+        self.log.append((self.calls, domain, period, cursor))
 
         if self.calls <= self.healthy_calls_first:
-            return dict(GOOD_METRICS, domain=domain, period=period)
+            return good_metrics(domain, period)
 
         mode = self.failure_mode
 
         if mode == "healthy":
-            return dict(GOOD_METRICS, domain=domain, period=period)
+            return good_metrics(domain, period)
 
         if mode == "unavailable":
             raise ConnectionFailed("Service unavailable")
@@ -108,47 +117,18 @@ class FakeAnalytics:
             raise Timeout("Request timed out after 30s", status=504)
 
         if mode == "partial":
+            # Whatever cursor the agent sends, the same first page comes back.
             return dict(PARTIAL_METRICS, domain=domain, period=period)
 
         if mode == "flapping":
             if self.calls % 2 == 1:
-                return dict(GOOD_METRICS, domain=domain, period=period)
+                return good_metrics(domain, period)
             raise ConnectionFailed("Service unavailable")
-
-        if mode == "slow_degrade":
-            self._sleep(min(self.calls * 0.5, 10))
-            return dict(GOOD_METRICS, domain=domain, period=period)
 
         if mode == "malformed":
             return MALFORMED_BODY
 
-        if mode == "slow_healthy":
-            self._sleep(1.5)
-            return dict(GOOD_METRICS, domain=domain, period=period)
-
         raise ValueError(f"unknown failure_mode: {mode}")
-
-
-@dataclass
-class FakeSecondSource:
-    """A second metrics source, used only by scenario 10.
-
-    Returns values that contradict FakeAnalytics so the agent has a conflict to
-    chase. Nothing is broken: the agent spends because reconciling is expensive.
-    """
-
-    disagree: bool = True
-    calls: int = 0
-
-    def get_metrics(self, domain, period="30d"):
-        self.calls += 1
-        traffic = 61_900 if self.disagree else GOOD_METRICS["organic_traffic"]
-        return {
-            "domain": domain,
-            "period": period,
-            "organic_traffic": traffic,
-            "source": "second_source",
-        }
 
 
 def build_tools(scenario):
@@ -156,11 +136,4 @@ def build_tools(scenario):
 
     scenario is one entry from evaluation/scenarios.json.
     """
-    mode = scenario["failure_mode"]
-    tools = {"analytics": FakeAnalytics(failure_mode=mode)}
-
-    if scenario["slug"] == "conflicting_data":
-        tools["analytics"] = FakeAnalytics(failure_mode="healthy")
-        tools["second_source"] = FakeSecondSource(disagree=True)
-
-    return tools
+    return {"analytics": FakeAnalytics(failure_mode=scenario["failure_mode"])}

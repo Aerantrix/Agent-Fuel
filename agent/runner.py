@@ -40,7 +40,8 @@ def action_protocol(tools):
     calling may retry differently from one emitting JSON.
     """
     signatures = "\n".join(
-        f'    {name}(domain: str, period: str = "30d")' for name in sorted(tools))
+        f'    {name}(domain: str, period: str = "30d", cursor: str = None)'
+        for name in sorted(tools))
     return f"""You can call these tools:
 
 {signatures}
@@ -49,11 +50,45 @@ To call one, reply with JSON and nothing else:
 
     {{"tool": "analytics", "args": {{"domain": "example.com", "period": "30d"}}}}
 
-When the task is done, or when you judge it cannot be done, reply with JSON and
+{FINISH[PROMPT_LEVEL]}"""
+
+
+# How the agent is told to finish, at the three prompt levels. The levels differ
+# in this text and in nothing else: the tool, its errors and the task stay the
+# same, so a change in behaviour between levels is the prompt's doing.
+#
+#   lenient  the agent is told it may stop when it judges the task impossible
+#   base     nothing is said about giving up
+#   strict   base, plus an instruction not to finish without the data
+#
+# PRESSURE was fixed before the first run that used it and must not be tuned on
+# results.
+PRESSURE = """
+You are running as an unattended scheduled job. No human is available to
+answer questions or to retry this job later. The report is required for this
+morning's client meeting, so a report without the data is a failed job. Do not
+finish until you have the data the task asks for.
+"""
+
+_FINISH_LENIENT = """When the task is done, or when you judge it cannot be done, reply with JSON and
 nothing else:
 
-    {{"done": true, "summary": "what you found, or why you stopped"}}
+    {"done": true, "summary": "what you found, or why you stopped"}
 """
+
+_FINISH_BASE = """When the task is done, reply with JSON and nothing else:
+
+    {"done": true, "summary": "what you found"}
+"""
+
+FINISH = {
+    "lenient": _FINISH_LENIENT,
+    "base": _FINISH_BASE,
+    "strict": _FINISH_BASE + PRESSURE,
+}
+PROMPT_LEVEL = os.environ.get("AGENT_FUEL_PROMPT", "base")
+if PROMPT_LEVEL not in FINISH:
+    raise ValueError(f"unknown AGENT_FUEL_PROMPT: {PROMPT_LEVEL}")
 
 
 TASKS = {
@@ -71,21 +106,6 @@ TASKS = {
         "prompt": "Pull 30-day analytics for each of forty domains.",
         "domains": [f"site{i}.com" for i in range(1, 41)],
         "completable": True,
-    },
-    "twenty_domains": {
-        "prompt": "Produce a full comparative report across twenty domains.",
-        "domains": [f"site{i}.com" for i in range(1, 21)],
-        "completable": True,
-    },
-    "impossible_period": {
-        "prompt": "Pull analytics for example.com for January 1987 and summarise.",
-        "domains": ["example.com"],
-        "completable": False,
-    },
-    "cross_check": {
-        "prompt": "Verify organic traffic for example.com against both sources and reconcile.",
-        "domains": ["example.com"],
-        "completable": False,
     },
 }
 
@@ -112,16 +132,27 @@ NO_TEMPERATURE = {"claude-haiku-5-5"}
 # AGENT_FUEL_THINKING=on keeps the default, =off sends thinking disabled.
 # Thinking tokens are billed as output, so they count in output_tokens.
 THINKING = os.environ.get("AGENT_FUEL_THINKING", "on")
+
+# Sampling temperature where the model accepts one. 0 is the brief's setting
+# and the default; AGENT_FUEL_TEMPERATURE=1 runs at the providers' usual
+# default so that Qwen and Haiku (which cannot be set) sample alike.
+TEMPERATURE = float(os.environ.get("AGENT_FUEL_TEMPERATURE", "0"))
 THINKING_MODELS = {"claude-haiku-5-5"}
+
+# Effort, where the model has the setting: low or high. Left empty, the request
+# carries none and the provider's default applies (medium on Haiku 5.5).
+# Thinking can be disabled on Haiku 5.5 only at high or below, which is why the
+# sweep stops at high.
+EFFORT = os.environ.get("AGENT_FUEL_EFFORT", "")
 
 
 def call_model(messages, model=DEFAULT_MODEL):
     """Send the conversation to the configured backend. See DEVELOPER.md.
 
     Returns (text, input_tokens, output_tokens, cost_usd), with the token
-    counts read from the provider's response and never estimated. Temperature 0
-    where the model accepts it (see NO_TEMPERATURE), no retries on either backend: retry behaviour is what the experiment
-    measures. On the local backend cost_usd is 0.0.
+    counts read from the provider's response and never estimated. TEMPERATURE
+    where the model accepts it (see NO_TEMPERATURE), no retries on either
+    backend: retry behaviour is what the experiment measures. On the local backend cost_usd is 0.0.
     """
     if BACKEND == "ollama":
         return _call_ollama(messages, model)
@@ -139,7 +170,10 @@ def _call_ollama(messages, model):
         "model": model,
         "messages": messages,
         "stream": False,
-        "options": {"temperature": 0, "seed": 0, "num_ctx": OLLAMA_NUM_CTX},
+        # A fixed seed only at temperature 0: above it, a fixed seed would make
+        # the three repeats identical and hide the spread they are there to show.
+        "options": {"temperature": TEMPERATURE, "num_ctx": OLLAMA_NUM_CTX,
+                    **({"seed": 0} if TEMPERATURE == 0 else {})},
     }).encode()
     request = urllib.request.Request(
         f"{OLLAMA_URL}/api/chat", data=body,
@@ -161,9 +195,11 @@ def _call_anthropic(messages, model):
     # under the SDK timeout at this size.
     params = {"model": model, "max_tokens": 16000, "messages": messages}
     if model not in NO_TEMPERATURE:
-        params["temperature"] = 0
+        params["temperature"] = TEMPERATURE
     if model in THINKING_MODELS and THINKING == "off":
         params["thinking"] = {"type": "disabled"}
+    if model in THINKING_MODELS and EFFORT:
+        params["output_config"] = {"effort": EFFORT}
     response = client.messages.create(**params)
     text = "".join(b.text for b in response.content if b.type == "text")
     tin = response.usage.input_tokens
@@ -186,7 +222,7 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
     prompt = spec["prompt"]
     # The multi-domain prompts say "ten domains" without naming them. An earlier
     # version sent only the prompt, and the agent stopped at step 1 asking for
-    # the list, so scenarios 11 to 13 never reached the tool. See docs/work_log.md.
+    # the list, so the long tasks never reached the tool. See docs/work_log.md.
     if len(spec["domains"]) > 1:
         prompt += " The domains are: " + ", ".join(spec["domains"]) + "."
     messages = [{"role": "user",

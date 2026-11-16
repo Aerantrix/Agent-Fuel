@@ -1,4 +1,4 @@
-"""Experiment runner: 15 scenarios x 7 configurations x 3 repeats = 315 runs.
+"""Experiment runner: 9 scenarios x 7 configurations x 3 repeats = 189 runs.
 
 Writes two CSVs:
     results/runs.csv       one row per run
@@ -90,8 +90,11 @@ def one_run(scenario, config_code, repeat):
             summary["halted"] and scenario["group"] == "C"
         ),
         "expected_mechanism": scenario["expected_mechanism"],
+        # The scenario names a mechanism; the controller reports which of its
+        # prints fired (loop_detector_call_fingerprint, ...), hence the prefix.
         "mechanism_matched": (
-            summary["halt_mechanism"] == scenario["expected_mechanism"]
+            (summary["halt_mechanism"] or "").startswith(scenario["expected_mechanism"])
+            if scenario["expected_mechanism"] else summary["halt_mechanism"] is None
         ),
     }, controller.journal.to_csv_rows()
 

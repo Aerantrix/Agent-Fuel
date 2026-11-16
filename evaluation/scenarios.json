@@ -1,10 +1,10 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "description": "Failure scenarios for evaluating execution-level spend control in LLM agents. Each scenario names one cause on the tool side, not one behaviour on the agent side.",
   "groups": {
     "A": "External service failure",
-    "B": "Overspend with no service failure",
-    "C": "False-positive control"
+    "C": "Healthy work: any halt here is a false interruption",
+    "R": "Reference: the ordinary short task, outside the false-interruption count"
   },
   "scenarios": [
     {
@@ -19,8 +19,8 @@
       "why_it_loops": "Models are trained on material in which network errors are transient, so the agent concludes that trying again is sensible. It holds no state recording how many attempts have been made.",
       "task_completable": false,
       "expected_decision": "stop",
-      "expected_mechanism": "circuit_breaker",
-      "note": "The motivating real-world incident."
+      "expected_mechanism": "loop_detector",
+      "note": "The motivating real-world incident. Identical retries are the loop detector's case; if the agent varies its request, the circuit breaker is the one that can trip."
     },
     {
       "id": 2,
@@ -34,8 +34,8 @@
       "why_it_loops": "There is no error, so the agent blames its own query. It rephrases, changes the period, tries another domain. Every call looks new.",
       "task_completable": false,
       "expected_decision": "stop",
-      "expected_mechanism": "loop_detector_result_fingerprint",
-      "note": "Argument-only fingerprinting will miss this. The result fingerprint is what catches it."
+      "expected_mechanism": "loop_detector",
+      "note": "An identical retry is caught by the call fingerprint. When the agent changes its query, only the result fingerprint can catch it: the answer is the same empty set."
     },
     {
       "id": 3,
@@ -64,7 +64,8 @@
       "why_it_loops": "The agent does not know whether the request completed. If the tool writes as well as reads, a retry can duplicate the action.",
       "task_completable": false,
       "expected_decision": "stop",
-      "expected_mechanism": "circuit_breaker"
+      "expected_mechanism": "loop_detector",
+      "note": "As scenario 1: the loop detector for identical retries, the circuit breaker when the request varies. 504 is transient, so the error classifier lets it through."
     },
     {
       "id": 5,
@@ -73,41 +74,28 @@
       "title": "Partial response with broken pagination",
       "failure_mode": "partial",
       "task": "daily_analytics",
-      "what_breaks": "The service returns the first 20 of 500 records with a truncation flag, and the same page every time.",
+      "what_breaks": "The service returns the first 20 of 500 records with a truncation flag and a next_cursor, and the same page comes back whatever cursor is sent.",
       "what_agent_sees": "Valid but incomplete data.",
       "why_it_loops": "The agent collects the remainder in batches. The loop is endless yet looks like legitimate work.",
       "task_completable": false,
       "expected_decision": "stop",
-      "expected_mechanism": "loop_detector_result_fingerprint"
+      "expected_mechanism": "loop_detector",
+      "note": "The tool accepts a cursor so the agent can ask for the next page; it never gets one."
     },
     {
       "id": 6,
       "slug": "flapping_service",
-      "group": "A",
+      "group": "C",
       "title": "Flapping service",
       "failure_mode": "flapping",
-      "task": "daily_analytics",
-      "what_breaks": "The service responds every other time, alternating success and failure.",
-      "what_agent_sees": "Instability.",
-      "why_it_loops": "Successes reset a consecutive-error counter, so a naive circuit breaker never trips.",
-      "task_completable": false,
-      "expected_decision": "stop",
-      "expected_mechanism": "circuit_breaker_sliding_window",
-      "note": "Designed for, not yet verified. A consecutive counter fails here; the sliding window is the fix under test."
-    },
-    {
-      "id": 7,
-      "slug": "gradual_degradation",
-      "group": "A",
-      "title": "Gradual degradation",
-      "failure_mode": "slow_degrade",
-      "task": "daily_analytics",
-      "what_breaks": "The service responds correctly, but response time grows with every call.",
-      "what_agent_sees": "Everything working, only slowly.",
-      "why_it_loops": "Formally it does not loop. This tests the time axis rather than the token axis.",
+      "task": "ten_domains",
+      "what_breaks": "The service answers every other call, alternating success and failure, across a ten-domain task.",
+      "what_agent_sees": "An unreliable service where a retry works.",
+      "why_it_loops": "It does not. Each failed call succeeds when repeated, so the task completes in about twice the steps. This tests whether the controller tells an unreliable service from a broken one.",
       "task_completable": true,
-      "expected_decision": "stop",
-      "expected_mechanism": "time_budget"
+      "expected_decision": "allow",
+      "expected_mechanism": null,
+      "note": "Stopping this run is a false interruption. At most three of any five calls fail, so the circuit breaker must stay closed; the loop detector warns on each retry and must not stop."
     },
     {
       "id": 8,
@@ -121,67 +109,7 @@
       "why_it_loops": "The agent tries to parse it, fails, concludes it formatted the request wrongly, and retries with changes.",
       "task_completable": false,
       "expected_decision": "stop",
-      "expected_mechanism": "loop_detector_result_fingerprint"
-    },
-    {
-      "id": 9,
-      "slug": "unreachable_goal",
-      "group": "B",
-      "title": "Unreachable goal",
-      "failure_mode": "healthy",
-      "task": "impossible_period",
-      "what_breaks": "Nothing. The task requests data for a period that does not exist in the system.",
-      "what_agent_sees": "Every tool working, but no answer to the question.",
-      "why_it_loops": "The agent searches in good faith. Every step is reasoned and differs from the last.",
-      "task_completable": false,
-      "expected_decision": "stop",
-      "expected_mechanism": "run_budget",
-      "note": "UNCOVERED by design. Loop detector and circuit breaker are both powerless; only the budget stops it."
-    },
-    {
-      "id": 10,
-      "slug": "conflicting_data",
-      "group": "B",
-      "title": "Conflicting data",
-      "failure_mode": "conflicting",
-      "task": "cross_check",
-      "what_breaks": "Two tools return incompatible values for the same metric.",
-      "what_agent_sees": "A conflict that needs resolving.",
-      "why_it_loops": "The agent rechecks, clarifies, looks for a third source. Reasonable behaviour, expensive outcome.",
-      "task_completable": false,
-      "expected_decision": "stop",
-      "expected_mechanism": "run_budget",
-      "note": "UNCOVERED by design."
-    },
-    {
-      "id": 11,
-      "slug": "context_accumulation",
-      "group": "B",
-      "title": "Context accumulation",
-      "failure_mode": "healthy",
-      "task": "twenty_domains",
-      "what_breaks": "Nothing. The task is long and executes normally.",
-      "what_agent_sees": "Normal work.",
-      "why_it_loops": "It does not. Context accumulates with every step, so cost grows faster than the step count.",
-      "task_completable": true,
-      "expected_decision": "stop",
-      "expected_mechanism": "run_budget",
-      "note": "UNCOVERED by design. No failure, but overspend all the same."
-    },
-    {
-      "id": 12,
-      "slug": "long_legitimate_task",
-      "group": "C",
-      "title": "Long legitimate task",
-      "failure_mode": "healthy",
-      "task": "ten_domains",
-      "what_breaks": "Nothing. Ten domains, roughly 43 steps, everything working.",
-      "what_agent_sees": "Normal work.",
-      "why_it_loops": "It does not. This tests whether the controller kills normal work.",
-      "task_completable": true,
-      "expected_decision": "allow",
-      "expected_mechanism": null,
-      "note": "The iteration cap is expected to interrupt this at step 15. Agent Fuel must not."
+      "expected_mechanism": "loop_detector"
     },
     {
       "id": 13,
@@ -196,27 +124,12 @@
       "task_completable": true,
       "expected_decision": "allow",
       "expected_mechanism": null,
-      "note": "A detector keyed on tool name alone fires falsely here. Argument normalisation must not collapse distinct domains."
-    },
-    {
-      "id": 14,
-      "slug": "slow_but_working",
-      "group": "C",
-      "title": "Slow but working service",
-      "failure_mode": "slow_healthy",
-      "task": "daily_analytics",
-      "what_breaks": "Nothing. The tool responds in 15 seconds instead of one, but responds correctly.",
-      "what_agent_sees": "Slow but valid data.",
-      "why_it_loops": "It does not. This tests whether the breaker opens on a healthy service.",
-      "task_completable": true,
-      "expected_decision": "allow",
-      "expected_mechanism": null,
-      "note": "If the breaker treats slowness as failure, it fires falsely. Latency alone must not count as an error."
+      "note": "A detector keyed on tool name alone fires falsely here. Forty calls with different domains must stay forty different prints, for the call and for the result."
     },
     {
       "id": 15,
       "slug": "healthy_task",
-      "group": "C",
+      "group": "R",
       "title": "Healthy task",
       "failure_mode": "healthy",
       "task": "daily_analytics",
@@ -226,7 +139,7 @@
       "task_completable": true,
       "expected_decision": "allow",
       "expected_mechanism": null,
-      "note": "Only the latency the controller adds is measured here."
+      "note": "The reference run: what the ordinary task costs. Left out of the false-interruption count, because nothing can plausibly halt a two-step run and it would only flatter the rate."
     }
   ],
   "configurations": [
@@ -297,5 +210,5 @@
     }
   ],
   "repeats": 3,
-  "total_runs": 315
+  "total_runs": 189
 }

@@ -39,7 +39,8 @@ def ollama_binary():
 KEYFILE = HOME / ".config" / "agent-fuel" / "anthropic_key"
 PORT = int(os.environ.get("AGENT_FUEL_CONSOLE_PORT", "8790"))
 
-CONFIGS = {"qwen": "ollama", "haiku": "anthropic", "haiku-nothink": "anthropic"}
+CONFIGS = {"qwen": "ollama", "haiku-think-low": "anthropic", "haiku-think-high": "anthropic",
+           "haiku-nothink-low": "anthropic", "haiku-nothink-high": "anthropic"}
 ARMS = set("ABCDEFG")
 
 DATA.mkdir(exist_ok=True)
@@ -102,7 +103,8 @@ def launch_next():
     cmd = [PYTHON, "-u", str(ROOT / "worker.py"), "--repo", str(REPO), "--data", str(DATA),
            "--config", config, "--scenarios", ",".join(map(str, p["scenarios"])),
            "--arms", ",".join(p["arms"]), "--repeats", str(p["repeats"]),
-           "--max-cost", str(p["max_cost"])]
+           "--max-cost", str(p["max_cost"]), "--condition", p["condition"],
+           "--temperature", str(p["temperature"])]
     proc = subprocess.Popen(cmd, cwd=REPO, env=env, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, bufsize=1,
                             encoding="utf-8", errors="replace")
@@ -196,6 +198,12 @@ class Handler(BaseHTTPRequestHandler):
             arms = [a for a in "ABCDEFG" if a in set(body.get("arms", []))]
             repeats = int(body.get("repeats", 1))
             max_cost = float(body.get("max_cost", 1.0))
+            condition = body.get("condition", "base")
+            if condition not in ("lenient", "base", "strict"):
+                return self.send(400, {"error": "Unknown condition."})
+            temperature = float(body.get("temperature", 0))
+            if temperature not in (0.0, 0.7, 1.0):
+                return self.send(400, {"error": "Temperature must be 0, 0.7 or 1."})
             if not (configs and scenarios and arms and 1 <= repeats <= 3):
                 return self.send(400, {"error": "Pick a model, at least one scenario and one arm."})
             if not 0 < max_cost <= 10:
@@ -206,8 +214,9 @@ class Handler(BaseHTTPRequestHandler):
                 if job["proc"] is not None:
                     return self.send(409, {"error": "A launch is already running. Wait for it to finish or press Stop."})
                 job.update(queue=configs, stopped=False,
-                           params={"scenarios": scenarios, "arms": arms, "repeats": repeats, "max_cost": max_cost})
-                say(f"start: {', '.join(configs)} · scenarios {scenarios} · arms {''.join(arms)} · repeats {repeats}")
+                           params={"scenarios": scenarios, "arms": arms, "repeats": repeats, "max_cost": max_cost,
+                                   "condition": condition, "temperature": temperature})
+                say(f"start: {', '.join(configs)} · {condition} · t={temperature:g} · scenarios {scenarios} · arms {''.join(arms)} · repeats {repeats}")
                 launch_next()
             return self.send(200, {"ok": True})
 

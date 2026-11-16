@@ -112,12 +112,16 @@ class LoopDetector:
     Two fingerprints per call:
 
         call fingerprint    tool name + normalised arguments
-        result fingerprint  the same, plus a hash of what came back
+        result fingerprint  tool name + a hash of what came back
 
     The result fingerprint is what catches scenario 2: the agent keeps changing
     its query, so the call fingerprint differs every time, but the answer is the
     same empty set. Scenario 13 is the control in the other direction: forty
     calls with genuinely different arguments must not collapse into one print.
+
+    Errors are counted by the call fingerprint only. A failing dependency is
+    the circuit breaker's evidence; printing the error text as a result would
+    stop scenario 6, where a retry after each failure succeeds.
     """
 
     threshold: int = 3
@@ -152,31 +156,46 @@ class LoopDetector:
         return self._digest(f"{tool}|{self._normalise(args)}")
 
     def fingerprint_result(self, tool, args, result):
+        # The request stays out of the print, and so do the fields of the
+        # answer that only echo it back. An earlier version hashed the
+        # arguments in, so a changed query always looked like a new result and
+        # this print could never fire on its own.
+        if isinstance(result, dict):
+            result = {k: v for k, v in result.items() if k not in args}
         payload = json.dumps(result, sort_keys=True, default=str)[:4000]
-        return self._digest(f"{tool}|{self._normalise(args)}|{self._digest(payload)}")
+        return self._digest(f"{tool}|{self._digest(payload)}")
 
-    def observe(self, tool, args, result):
-        """Called after a tool returns. Returns a verdict on the run so far."""
+    def observe(self, tool, args, result=None, failed=False):
+        """Called after a tool returns or raises. Returns a verdict on the run so far."""
         call_fp = self.fingerprint_call(tool, args)
-        result_fp = self.fingerprint_result(tool, args, result)
-
         self.call_counts[call_fp] = self.call_counts.get(call_fp, 0) + 1
-        self.result_counts[result_fp] = self.result_counts.get(result_fp, 0) + 1
+        calls = self.call_counts[call_fp]
 
-        if self.call_counts[call_fp] >= self.threshold:
+        results = 0
+        if not failed:
+            result_fp = self.fingerprint_result(tool, args, result)
+            self.result_counts[result_fp] = self.result_counts.get(result_fp, 0) + 1
+            results = self.result_counts[result_fp]
+
+        if calls >= self.threshold:
             return Verdict(
                 Decision.STOP, "loop_detector_call_fingerprint",
-                f"identical call repeated {self.call_counts[call_fp]} times ({call_fp})",
+                f"identical call repeated {calls} times ({call_fp})",
             )
-        if self.result_counts[result_fp] >= self.threshold:
+        if results >= self.threshold:
             return Verdict(
                 Decision.STOP, "loop_detector_result_fingerprint",
-                f"identical result returned {self.result_counts[result_fp]} times ({result_fp})",
+                f"identical result returned {results} times ({result_fp})",
             )
-        if self.call_counts[call_fp] == self.threshold - 1:
+        if calls == self.threshold - 1:
             return Verdict(
                 Decision.WARN, "loop_detector_call_fingerprint",
                 f"call repeated {self.threshold - 1} times",
+            )
+        if results == self.threshold - 1:
+            return Verdict(
+                Decision.WARN, "loop_detector_result_fingerprint",
+                f"identical result returned {self.threshold - 1} times",
             )
         return Verdict(Decision.ALLOW)
 
@@ -383,6 +402,8 @@ class AgentFuel:
 
         verdict = self._resolve(checks)
         self._log("before_tool", verdict, tool=tool)
+        if verdict.decision is Decision.WARN:
+            self.pending_warnings.append(WARNING_TEMPLATE.format(reason=verdict.reason))
         if verdict.stops:
             self.halted = verdict
         return verdict
@@ -398,10 +419,8 @@ class AgentFuel:
         if failed and self._active("error_classifier"):
             checks.append(self.errors.check(error))
 
-        if not failed and self._active("loop_detector"):
-            checks.append(self.loops.observe(tool, args, result))
-        elif failed and self._active("loop_detector"):
-            checks.append(self.loops.observe(tool, args, {"error": str(error)}))
+        if self._active("loop_detector"):
+            checks.append(self.loops.observe(tool, args, result, failed=failed))
 
         verdict = self._resolve(checks)
         self._log("after_tool", verdict, tool=tool, failed=failed)

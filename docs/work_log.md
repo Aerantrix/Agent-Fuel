@@ -222,3 +222,90 @@ page was considered and dropped.
 Checked on this Mac with a free Qwen run through the console. The Windows
 steps and the PowerShell key command are untested until a team member on
 Windows runs them.
+
+## 9 November 2026: the stand rebuilt for the revised study design
+
+Decided with the author after a walk through the design, scenario by scenario.
+Everything below is on branch `stand-v2`, uncommitted.
+
+### Nine scenarios instead of fifteen
+
+- **Failure (group A):** 1, 2, 3, 4, 5, 8. A failure is the service not
+  returning what it should: an error, nothing, a part, or garbage.
+- **Healthy work that must not be halted (group C):** 6 and 13. Scenario 6 is
+  reworked: the flapping service now faces a ten-domain task, every failed
+  call succeeds on retry, and the right verdict is to leave it alone.
+- **Reference (group R):** 15, the ordinary short task. It stays out of the
+  false-interruption count because nothing can plausibly halt a two-step run.
+- **Removed:** 7 and 14 (they test wall-clock time, not tokens, and the stub's
+  delay was never switched on), 9 (the stub returned data for the "impossible"
+  period; once fixed it would duplicate 2), 10 (wrong values are not a tool
+  failure), 11 and 12 (the same healthy task as 13 at shorter lengths).
+
+### Three prompt levels, and nothing else varies
+
+The condition is now the prompt level, set by `AGENT_FUEL_PROMPT` in
+`agent/runner.py`:
+
+- **lenient**: the agent is told it may stop when it judges the task impossible
+  (the wording every earlier run had);
+- **base**: nothing is said about giving up;
+- **strict**: base plus the unattended-job instruction, text unchanged from
+  2 November.
+
+The retry hints in the service errors are gone. The tool's replies reach the
+agent as they are at every level, so the only voices in a run are the first
+message and the controller.
+
+### Model variants
+
+Qwen 2.5 7B at a chosen temperature. Haiku 5.5 four ways: thinking on or off,
+effort low or high (`AGENT_FUEL_EFFORT`; the API refuses disabled thinking
+above high). All four were accepted by the API in a one-run check. The two
+models cannot be put under identical settings, so they are compared within
+themselves and across each other by trend only.
+
+### Stub and controller
+
+- Healthy metrics now differ per domain and period, from a hash, so they never
+  change between runs.
+- The tool takes a `cursor`, so in scenario 5 the agent can ask for the next
+  page and gets the same one.
+- The result fingerprint no longer hashes the request or the fields that echo
+  it. Before, a changed query always produced a new print and this half of the
+  loop detector could not fire on its own.
+- Errors count towards the call fingerprint only. Printing the error text as a
+  result would have stopped scenario 6 on its third failure.
+- A circuit-breaker warning is now passed to the agent, like the loop
+  detector's. It used to reach the journal only.
+- `mechanism_matched` compares by prefix, and `expected_mechanism` in
+  `scenarios.json` names the mechanism that the logic above makes fire.
+
+Checked without a model by scripted agents against the stub and the full
+controller: identical retries stop on the third call (call fingerprint),
+varied queries with the same answer stop on the third (result fingerprint),
+varied queries against a dead service stop before the fifth call (breaker),
+401 stops on the first, and scenarios 6, 13 and 15 run to the end.
+
+### Earlier runs
+
+All 2,765 are kept in `console/data/pilot_runs_2026-10-26_to_2026-11-03.jsonl`.
+Sixty match the new lenient level and were carried into `runs.jsonl`, marked
+`pilot`: Qwen, scenarios 1, 2, 3, 4 and 8, arms A, C and D, temperature 1
+(three repeats) and 0 (one). Their one difference from the current stand is
+the tool signature in the prompt, which had no `cursor` then. A new run of the
+same cell replaces the carried record. Nothing else carries over: every Haiku
+run used the default effort, Base and Strict had the give-up wording, Strict
+had the retry hints, and arms E to G ran the old detector.
+
+### Open
+
+- Qwen at the base level answers a ten-domain task with all ten calls in one
+  reply. `parse_action` reads that as "finished", so the run ends at step 1
+  and is recorded as completed with no data. Known since the first sweep.
+- Arms B and C are still run; in the revised design the account limit and the
+  iteration cap are to be computed from arm A's journals instead.
+- `evaluation/analyse.py` and the dashboard figures still use the earlier
+  definitions of the two numbers.
+- README, DEVELOPER, HANDOVER and GETTING_STARTED still describe fifteen
+  scenarios.

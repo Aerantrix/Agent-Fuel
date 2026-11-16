@@ -65,7 +65,7 @@ def per_arm(runs):
     measures what the controller itself costs. A negative figure there is the
     controller's overhead, not a saving, and is reported separately below.
     """
-    faulted = runs[runs.group != "C"]
+    faulted = runs[runs.group == "A"]
     control = runs[runs.group == "C"]
 
     base = (faulted[faulted.config == BASELINE]
@@ -73,7 +73,7 @@ def per_arm(runs):
 
     rows = []
     for arm, grp in runs.groupby("config"):
-        f = grp[grp.group != "C"].set_index(["scenario_id", "repeat"])
+        f = grp[grp.group == "A"].set_index(["scenario_id", "repeat"])
         prevented = (base - f.tokens).dropna()
 
         c = grp[grp.group == "C"]
@@ -124,7 +124,7 @@ def uncovered(runs):
     halted_by = runs[runs.halted].groupby("scenario_id").config.nunique()
     all_ids = runs[["scenario_id", "scenario_slug", "group"]].drop_duplicates()
     never = all_ids[~all_ids.scenario_id.isin(halted_by.index)]
-    return never[never.group != "C"].rename(
+    return never[never.group == "A"].rename(
         columns={"scenario_id": "#", "scenario_slug": "Scenario", "group": "Group"})
 
 
@@ -200,13 +200,13 @@ def fig_sweep(runs, path):
         return False
 
     fig, ax = plt.subplots(figsize=(7, 5.5))
-    base = runs[(runs.config == BASELINE) & (runs.group != "C")].tokens.mean()
+    base = runs[(runs.config == BASELINE) & (runs.group == "A")].tokens.mean()
     drawn = 0
 
     for arm, grp in runs[runs.param.notna()].groupby("config"):
         pts = []
         for value, sub in grp.groupby("param"):
-            faulted = sub[sub.group != "C"]
+            faulted = sub[sub.group == "A"]
             control = sub[sub.group == "C"]
             if faulted.empty or control.empty:
                 continue
