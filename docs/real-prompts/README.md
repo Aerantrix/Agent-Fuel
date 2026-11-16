@@ -92,12 +92,15 @@ strict level is rarer in shipped defaults than the study assumed.
 
 Criterion 2 of the task sheet (our `analytics(domain, period, cursor)` tool
 plugs in without editing the text) holds for all ten: every framework injects
-its tool list through a template variable or the API's tool schema. What the
-stand lacks is the other direction: an adapter per call format (ReAct text,
-JSON, built-in) so the model's reply can be read, and a "prompt from file"
-mode that puts a real prompt in place of our three levels. The three prompt
-levels of the study (lenient, base, strict) labelled by the same rules are
-Allowed, Silent and Forbidden on A.
+its tool list through a template variable or the API's tool schema. The stand
+runs nine of the ten (branch `stand-v2`, `agent/real_prompts.py`): the three
+text protocols through parsers for ReAct, MRKL and smolagents' JSON actions,
+and six built-in ones through a second path that passes the tool as a schema
+to the provider. AutoGPT classic is the one without an adapter: its prompt
+asks for a JSON reply and a tool call at once against a schema generated at
+run time. A run under a real prompt is recorded with the file's name as its
+condition, beside lenient, base and strict. The three prompt levels of the
+study labelled by the same rules are Allowed, Silent and Forbidden on A.
 
 ## Doubts to settle
 
