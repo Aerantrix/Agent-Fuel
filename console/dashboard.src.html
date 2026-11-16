@@ -129,6 +129,7 @@ button.cell[data-has]:hover { border-color: var(--ink-2); }
 .c-ceiling { background: var(--burn-soft); color: var(--burn); }
 .c-ok { background: var(--guard-soft); color: var(--guard); }
 .c-false { background: var(--burn-soft); color: var(--burn); }
+.cell.computed { border: 1px dashed currentColor !important; opacity: .88; }
 .pill { font: 600 10px var(--body); letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; white-space: nowrap; display: inline-block; }
 .pill.pass { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
 .pill.flag { background: var(--burn-soft); color: var(--burn); }
@@ -229,6 +230,7 @@ footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
     <span><i class="box c-ceiling"></i>60-step ceiling</span>
     <span><i class="box c-ok"></i>healthy task completed</span>
     <span><i class="box c-false"></i>healthy task halted by mistake</span>
+    <span><i class="box" style="background:var(--surface-2);border:1px dashed var(--ink-2)"></i>computed over the arm A run (dashed)</span>
     <span><i class="box" style="background:var(--surface-2);border:1px solid var(--line)"></i>not run yet</span>
   </div>
   <div class="tablewrap"><table class="matrix" id="matrix"></table></div>
@@ -577,7 +579,8 @@ function renderTrade() {
 
 // --- matrix ----------------------------------------------------------------
 function cellButton(here, title, arm, short) {
-  const rep = here[here.length - 1], b = el("button", "cell c-" + outcome(rep)); b.type = "button"; b.dataset.has = "1";
+  const rep = here[here.length - 1], b = el("button", "cell c-" + outcome(rep) + (rep.computed ? " computed" : "")); b.type = "button"; b.dataset.has = "1";
+  if (rep.computed) b.title = "Computed by replaying the controller over the arm A run; not a live run.";
   if (short) b.append(el("span", "mk", short));
   const val = el("span"); val.textContent = fmtNum(median(here.map(r => r.tokens)));
   val.append(el("small", null, `${rep.steps} steps${here.length > 1 ? " · ×" + here.length : ""}`)); b.append(val);

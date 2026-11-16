@@ -137,6 +137,22 @@ def load_runs():
                     runs[doc["id"]] = doc  # a re-run replaces the older record
     except FileNotFoundError:
         pass
+    # Arms computed by evaluation/analyse.py over the arm A runs. A live run
+    # of the same cell (same scenario, arm, repeat and series) takes its place.
+    live = {(r["model"], r.get("condition"), str(r.get("temperature")), r["scenario_id"], r["arm"], r.get("repeat"))
+            for r in runs.values()}
+    try:
+        with (DATA / "computed.jsonl").open(encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                doc = json.loads(line)
+                key = (doc["model"], doc.get("condition"), str(doc.get("temperature")), doc["scenario_id"], doc["arm"], doc.get("repeat"))
+                if key not in live and doc["id"] not in runs:
+                    runs[doc["id"]] = doc
+    except FileNotFoundError:
+        pass
     return list(runs.values())
 
 

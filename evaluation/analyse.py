@@ -423,6 +423,39 @@ def fig_tradeoff(df, path):
     return True
 
 
+COMPUTED_FILE = ROOT / "console" / "data" / "computed.jsonl"
+COMPUTED_ARMS = {f"B{HEADLINE_LIMIT_DAYS}": "B", f"C{HEADLINE_STEP_CAP}": "C",
+                 "D": "D", "E": "E", "F": "F", "G": "G"}
+
+
+def write_computed(runs, df):
+    """Computed arms as run records for the console, one per arm A run and
+    control, so the dashboard can show the controller beside the live arm
+    A cells. Marked computed; the console lets a live run of the same cell
+    take precedence."""
+    by_id = {r["id"]: r for r in runs}
+    with COMPUTED_FILE.open("w", encoding="utf-8") as f:
+        for _, x in df[df.code.isin(COMPUTED_ARMS)].iterrows():
+            r = by_id[x.run_id]
+            arm = COMPUTED_ARMS[x.code]
+            steps = int(x.steps_with)
+            rec = {
+                "id": f"{r['id']}~{arm}", "computed": True, "computed_from": r["id"],
+                "model": r["model"], "condition": r["condition"], "temperature": r.get("temperature"),
+                "scenario_id": r["scenario_id"], "arm": arm, "repeat": r["repeat"], "ts": r["ts"],
+                "steps": steps, "tokens": int(x.tokens_with), "cost_usd": 0.0,
+                "halted": bool(x.halted), "halt_mechanism": x.mechanism or None,
+                "halt_reason": f"computed over the arm A run: {x.control}" if x.halted else None,
+                "expected_mechanism": r.get("expected_mechanism"),
+                "mechanism_matched": bool(x.halted and x.mechanism.startswith(x.expected_mechanism or "\0")),
+                "task_completed": bool(r.get("task_completed")) and not bool(x.halted),
+                "task_completable": bool(r.get("task_completable")),
+                "trace": r.get("trace", [])[:steps], "curve": r.get("curve", [])[:steps], "decisions": [],
+            }
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    print(f"Wrote {COMPUTED_FILE}")
+
+
 # --- report ----------------------------------------------------------------
 
 def md(df, empty="None."):
@@ -440,6 +473,7 @@ def main(argv=None):
 
     df = compute(runs)
     df.to_csv(RESULTS / "replay.csv", index=False)
+    write_computed(runs, df)
 
     head = [("Agent Fuel (G)", "G"), ("Mechanisms only, no run budget", "M"),
             (f"Step cap {HEADLINE_STEP_CAP}", f"C{HEADLINE_STEP_CAP}"),
