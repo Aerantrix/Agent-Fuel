@@ -67,9 +67,11 @@ class Adapter:
     name = ""
     deviation = None  # set by parse(), like runner.parse_action.deviation
 
-    def __init__(self, path):
-        self.path = Path(path)
-        self.text = self.path.read_text(encoding="utf-8")
+    def __init__(self, path=None):
+        # Without a path the adapter can only parse replies, which is all the
+        # replay in evaluation/analyse.py needs.
+        self.path = Path(path) if path else None
+        self.text = self.path.read_text(encoding="utf-8") if path else ""
 
     def first_message(self, task):
         raise NotImplementedError

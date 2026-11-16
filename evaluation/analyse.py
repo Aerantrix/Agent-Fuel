@@ -61,6 +61,7 @@ sys.path.insert(0, str(ROOT))
 from control.agent_fuel import AgentFuel, build_controller  # noqa: E402
 from sandbox.fake_tools import build_tools  # noqa: E402
 from agent.runner import parse_action  # noqa: E402
+from agent import real_prompts  # noqa: E402
 
 RESULTS = ROOT / "results"
 RUNS_FILE = ROOT / "console" / "data" / "runs.jsonl"
@@ -132,6 +133,11 @@ def replay(r, arm):
         ctl = build_controller(arm, REPLAY_OVERRIDES)
     curve = r["curve"]
     spent = 0
+    # A run under a real framework prompt has replies in that framework's
+    # protocol; its adapter reads them, as the runner did live.
+    cond = str(r.get("condition", ""))
+    adapter = real_prompts.ADAPTERS[cond[:3]]() if cond[:3] in real_prompts.ADAPTERS else None
+    read = adapter.parse if adapter else parse_action
 
     for i, step in enumerate(r["trace"]):
         if ctl.before_step().stops:
@@ -139,7 +145,7 @@ def replay(r, arm):
         ctl.record_model_call(step["in"], step["out"], 0.0)
         spent = curve[i]
 
-        action = parse_action(step["reply"])
+        action = read(step["reply"])
         if action is None:
             break
         tool_name, args = action
