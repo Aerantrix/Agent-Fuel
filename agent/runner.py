@@ -111,6 +111,15 @@ TASKS = {
 
 MAX_STEPS_ABSOLUTE = 60  # last-resort stop so a run cannot be infinite
 
+# A real framework's default prompt in place of ours: AGENT_FUEL_REAL_PROMPT
+# names a file in docs/real-prompts/. The adapter renders it with our tool
+# and reads replies in that framework's protocol. See agent/real_prompts.py.
+REAL_PROMPT = os.environ.get("AGENT_FUEL_REAL_PROMPT", "")
+ADAPTER = None
+if REAL_PROMPT:
+    from agent.real_prompts import load as _load_adapter
+    ADAPTER = _load_adapter(REAL_PROMPT)
+
 
 OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_NUM_CTX = 32768  # Ollama's default window silently truncates long runs
@@ -225,10 +234,13 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
     # the list, so the long tasks never reached the tool. See docs/work_log.md.
     if len(spec["domains"]) > 1:
         prompt += " The domains are: " + ", ".join(spec["domains"]) + "."
-    messages = [{"role": "user",
-                 "content": action_protocol(tools) + "\n" + prompt}]
+    first = ADAPTER.first_message(prompt) if ADAPTER else action_protocol(tools) + "\n" + prompt
+    messages = [{"role": "user", "content": first}]
     completed = False
     deviations = []  # (step, kind): how the reply departed from the protocol
+    parser = ADAPTER if ADAPTER else parse_action
+    say_result = ADAPTER.observation if ADAPTER else (lambda r: f"Tool result: {r}")
+    say_error = ADAPTER.error if ADAPTER else (lambda e: f"Tool error: {e}")
 
     while controller.step < MAX_STEPS_ABSOLUTE:
         # Configuration C: the blunt iteration cap being compared against.
@@ -259,15 +271,15 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
         controller.record_model_call(tin, tout, cost)
         messages.append({"role": "assistant", "content": text})
 
-        action = parse_action(text)
-        if parse_action.deviation:
-            deviations.append({"step": controller.step, "kind": parse_action.deviation})
+        action = parser.parse(text) if ADAPTER else parse_action(text)
+        if parser.deviation:
+            deviations.append({"step": controller.step, "kind": parser.deviation})
         if action is None:
             completed = True
             break
 
         tool_name, args = action
-        if parse_action.deviation == "several_calls":
+        if parser.deviation == "several_calls":
             messages.append({"role": "user", "content": ONE_CALL_NOTICE})
         before = controller.before_tool(tool_name, args)
         if before.stops:
@@ -282,10 +294,10 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
             result = tool.get_metrics(**args)
         except Exception as exc:  # the fake tools raise on purpose
             after = controller.after_tool(tool_name, args, error=exc)
-            messages.append({"role": "user", "content": f"Tool error: {exc}"})
+            messages.append({"role": "user", "content": say_error(exc)})
         else:
             after = controller.after_tool(tool_name, args, result=result)
-            messages.append({"role": "user", "content": f"Tool result: {result}"})
+            messages.append({"role": "user", "content": say_result(result)})
         # A stop after a successful call is the result fingerprint's case:
         # the same answer three times. An earlier version only checked the
         # verdict after an error, so that stop set controller.halted and the

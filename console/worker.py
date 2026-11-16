@@ -36,6 +36,9 @@ ap.add_argument("--arms", required=True, help="comma-separated codes")
 ap.add_argument("--repeats", type=int, default=1)
 ap.add_argument("--max-cost", type=float, default=1.0, help="stop this batch past this many dollars")
 ap.add_argument("--condition", default="base", choices=["lenient", "base", "strict"])
+ap.add_argument("--real-prompt", default="",
+                help="a file from docs/real-prompts/: run under that framework's default prompt "
+                     "instead of --condition; the run is recorded with the file's name as its condition")
 ap.add_argument("--temperature", type=float, default=0.0)
 args = ap.parse_args()
 
@@ -47,6 +50,9 @@ os.environ["AGENT_FUEL_THINKING"] = cfg["thinking"]
 os.environ["AGENT_FUEL_EFFORT"] = cfg["effort"]
 os.environ["AGENT_FUEL_PROMPT"] = args.condition
 os.environ["AGENT_FUEL_TEMPERATURE"] = str(args.temperature)
+if args.real_prompt:
+    os.environ["AGENT_FUEL_REAL_PROMPT"] = str(Path(args.real_prompt).resolve())
+    args.condition = Path(args.real_prompt).stem  # e.g. P03_llamaindex_react
 
 sys.path.insert(0, args.repo)
 import agent.runner as runner  # noqa: E402

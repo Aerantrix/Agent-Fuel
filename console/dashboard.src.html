@@ -588,14 +588,20 @@ function cellButton(here, title, arm, short) {
 }
 function renderMatrix() {
   const ms = activeModels(), multi = ms.length > 1, t = $("matrix"); t.replaceChildren();
+  // Only the arms that have at least one run for the shown models get a
+  // column. An arm nobody has run yet would otherwise be a column of
+  // placeholders, one per model and scenario.
+  const arms = ARMS.filter(([arm]) => ms.some(model => runsOf(model).some(r => r.arm === arm)));
+  const hasG = arms.some(([arm]) => arm === "G");
   const thead = el("thead"), hr = el("tr"); hr.append(el("th", null, "Scenario"));
-  ARMS.forEach(([c, n]) => { const th = el("th", null, c); th.append(el("small", null, n)); hr.append(th); });
-  hr.append(el("th", null, "What fired in G")); thead.append(hr); t.append(thead);
+  arms.forEach(([c, n]) => { const th = el("th", null, c); th.append(el("small", null, n)); hr.append(th); });
+  if (hasG) hr.append(el("th", null, "What fired in G"));
+  thead.append(hr); t.append(thead);
   const tb = el("tbody"); let lastG = null;
   SCENARIOS.forEach(([id, g, title]) => {
-    if (g !== lastG) { const gr = el("tr", "grp"), td = el("td", null, g + " · " + GROUPS[g]); td.colSpan = 9; gr.append(td); tb.append(gr); lastG = g; }
+    if (g !== lastG) { const gr = el("tr", "grp"), td = el("td", null, g + " · " + GROUPS[g]); td.colSpan = arms.length + (hasG ? 2 : 1); gr.append(td); tb.append(gr); lastG = g; }
     const tr = el("tr"), sc = el("td", "sc"); sc.append(el("span", "g", String(id).padStart(2, "0")), document.createTextNode(title)); tr.append(sc);
-    ARMS.forEach(([arm]) => {
+    arms.forEach(([arm]) => {
       const td = el("td"), stack = el("div", multi ? "cellstack" : "");
       ms.forEach(model => {
         const here = runsOf(model).filter(r => r.scenario_id === id && r.arm === arm).sort((a, b) => (a.repeat || 0) - (b.repeat || 0));
@@ -606,6 +612,7 @@ function renderMatrix() {
       if (!ms.length) stack.append(el("div", "cell", "·"));
       td.append(stack); tr.append(td);
     });
+    if (!hasG) { tb.append(tr); return; }
     const last = el("td"); last.style.textAlign = "left";
     const pills = el("div"); pills.style.display = "grid"; pills.style.gap = "3px";
     ms.forEach(model => {

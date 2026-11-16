@@ -265,7 +265,9 @@ def compute(runs):
     df = pd.DataFrame(rows)
     order = sorted(df.variant.unique(), key=lambda v: (not v.startswith("qwen"), v))
     df["variant"] = pd.Categorical(df.variant, order)
-    df["condition"] = pd.Categorical(df.condition, CONDITIONS)
+    # Our three levels first, then any real prompts (P01_..., P03_...) in name order.
+    conds = list(CONDITIONS) + sorted(c for c in df.condition.unique() if c not in CONDITIONS)
+    df["condition"] = pd.Categorical(df.condition, conds)
     return df.sort_values(["variant", "condition", "scenario_id", "repeat"]).reset_index(drop=True)
 
 
