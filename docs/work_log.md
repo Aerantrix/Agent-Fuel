@@ -309,3 +309,54 @@ had the retry hints, and arms E to G ran the old detector.
   definitions of the two numbers.
 - README, DEVELOPER, HANDOVER and GETTING_STARTED still describe fifteen
   scenarios.
+
+## 16 November 2026: the analysis rewritten for the revised design
+
+### What the sweep holds
+
+433 records in `console/data/runs.jsonl` after 9 November, all arm A: Qwen at
+t=1 (three repeats) and t=0 (one), Haiku 5.5 in four variants, at all three
+prompt levels, nine scenarios. 431 usable: one API error, one duplicate.
+
+### `evaluation/analyse.py`
+
+Reads the console's run file instead of `results/runs.csv`. Every control is
+computed over the arm A runs, since the stub is deterministic: the iteration
+cap and the account limit as caps on the token curve, arms D to G by replaying
+the real controller over the recorded calls. Definitions (minimum, excess,
+share of excess, spoiled tasks, covered / not covered / not checked) are in
+the docstring. Outputs `results/summary.md`, `results/replay.csv` (one row per
+run and control, so every figure can be recomputed), `fig1-tradeoff.png`.
+
+Parameters at the top of the file, all open to the author: minimum at step 3,
+step caps 10 to 40 with 15 as the headline, a day of 10 healthy tasks and the
+account limit at 1, 2, 5 and 10 days with 2 as the headline. The $2 cost
+ceiling is out of the replay; the 50,000-token run budget stays.
+
+### Harness fix: a stop after a successful call was ignored
+
+`agent/runner.py` checked the controller's verdict only after a tool error.
+A STOP from the result fingerprint (the same answer three times, scenarios 2,
+5, 8) set `controller.halted` and the loop went on. Fixed: the verdict is
+checked on both branches. No live controlled run had been made on the new
+stand, so nothing is invalidated; the pilot's arms E to G ran the old
+detector and were already set aside.
+
+### First reading
+
+- Without control the agents mostly give up early. At lenient and base,
+  Qwen stops at step 2 every time; Haiku within three steps in about half the
+  runs. Only strict makes a runaway: Qwen burns 80 to 100k tokens in nine of
+  eighteen runs (cut at 60 steps), Haiku with thinking 4 to 6k on average.
+- Agent Fuel saves essentially the whole excess (96 to 100 percent) at every
+  level, and the step cap and the account limit save nothing on Haiku,
+  because Haiku's runaways are short (4 to 9 steps) and cheap.
+- The run budget of 50,000 tokens spoils scenario 13 on every model: the
+  honest forty-site task costs 51 to 52k cumulative. Without the run budget
+  the three mechanisms spoil no Haiku control run.
+- Qwen under strict spoils scenario 6 three times in four: on a retry it adds
+  `"retry": "true"` to the call, the stub rejects the argument, and the
+  breaker counts that as a failure. A stand property, not the model's loop.
+- Stand defects, counted as not checked: Qwen answers the ten- and forty-site
+  tasks with every call in one reply at lenient and base (16 runs); three
+  Haiku thinking-low strict replies start with prose before the JSON.

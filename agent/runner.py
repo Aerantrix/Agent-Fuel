@@ -275,13 +275,18 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
 
         try:
             result = tool.get_metrics(**args)
-            controller.after_tool(tool_name, args, result=result)
-            messages.append({"role": "user", "content": f"Tool result: {result}"})
         except Exception as exc:  # the fake tools raise on purpose
             after = controller.after_tool(tool_name, args, error=exc)
             messages.append({"role": "user", "content": f"Tool error: {exc}"})
-            if after.stops:
-                break
+        else:
+            after = controller.after_tool(tool_name, args, result=result)
+            messages.append({"role": "user", "content": f"Tool result: {result}"})
+        # A stop after a successful call is the result fingerprint's case:
+        # the same answer three times. An earlier version only checked the
+        # verdict after an error, so that stop set controller.halted and the
+        # run went on regardless.
+        if after.stops:
+            break
 
     return {"completed": completed, "messages": len(messages)}
 
