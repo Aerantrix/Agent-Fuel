@@ -293,9 +293,14 @@ def _call_anthropic_native(messages, model, tools):
                   "is_error": bool(m.get("is_error"))} if m["role"] == "tool"
                  else {"type": "text", "text": m["content"]})
         # The API wants user turns to alternate with assistant turns, so a
-        # tool result and a notice that follow each other share one turn.
+        # tool result and a notice that follow each other share one turn,
+        # the tool results first.
         if out and out[-1]["role"] == "user":
-            out[-1]["content"].append(block)
+            blocks = out[-1]["content"]
+            if block["type"] == "tool_result":
+                blocks.insert(sum(1 for b in blocks if b["type"] == "tool_result"), block)
+            else:
+                blocks.append(block)
         else:
             out.append({"role": "user", "content": [block]})
 
@@ -393,6 +398,12 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
 
         tool_name, args = action
         if parser.deviation == "several_calls":
+            if native:
+                # Every call id must be answered or the API refuses the next
+                # request; the extra calls are refused, not executed.
+                for extra in calls[1:]:
+                    messages.append({"role": "tool", "tool_call_id": extra["id"],
+                                     "content": ONE_CALL_NOTICE, "is_error": True})
             messages.append({"role": "user", "content": ONE_CALL_NOTICE})
         before = controller.before_tool(tool_name, args)
         if before.stops:
