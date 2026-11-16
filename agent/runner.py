@@ -228,6 +228,7 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
     messages = [{"role": "user",
                  "content": action_protocol(tools) + "\n" + prompt}]
     completed = False
+    deviations = []  # (step, kind): how the reply departed from the protocol
 
     while controller.step < MAX_STEPS_ABSOLUTE:
         # Configuration C: the blunt iteration cap being compared against.
@@ -259,11 +260,15 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
         messages.append({"role": "assistant", "content": text})
 
         action = parse_action(text)
+        if parse_action.deviation:
+            deviations.append({"step": controller.step, "kind": parse_action.deviation})
         if action is None:
             completed = True
             break
 
         tool_name, args = action
+        if parse_action.deviation == "several_calls":
+            messages.append({"role": "user", "content": ONE_CALL_NOTICE})
         before = controller.before_tool(tool_name, args)
         if before.stops:
             break
@@ -288,35 +293,68 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
         if after.stops:
             break
 
-    return {"completed": completed, "messages": len(messages)}
+    return {"completed": completed, "messages": len(messages), "deviations": deviations}
 
 
 def parse_action(text):
-    """TODO: parse the agent's reply. See action_protocol() for the format.
+    """Parse the agent's reply. See action_protocol() for the format.
 
     Return (tool_name, args_dict) for a tool call, or None when the agent has
     finished or has given up.
 
-    Returning None does not mean the task succeeded. Six of the fifteen
-    scenarios cannot be completed at all, and an agent that gives up on one of
-    them also returns None here. The run record keeps task_completable beside
-    the outcome so that analyse.py can separate the two; do not try to judge
+    Returning None does not mean the task succeeded. Six of the scenarios
+    cannot be completed at all, and an agent that gives up on one of them also
+    returns None here. The run record keeps task_completable beside the
+    outcome so that analyse.py can separate the two; do not try to judge
     success in this function.
 
-    If the reply is not valid JSON, return None rather than guessing: a model
-    that cannot follow the protocol is a finding about that model, and
-    silently repairing its output would hide it.
+    The protocol asks for JSON and nothing else. Models often break that: a
+    sentence before the JSON, several calls in one reply. An earlier version
+    returned None on anything but a bare JSON object, and the runner read that
+    as "finished": in the 9 November sweep that ended 81 of 431 runs the agent
+    had meant to continue. The parser now takes the first tool call found in
+    the reply and records how the reply departed from the protocol in
+    parse_action.deviation (None when it did not), so the finding about the
+    model is kept and the run goes on.
     """
     import json
 
+    parse_action.deviation = None
     try:
-        reply = json.loads(text)
+        bare = json.loads(text)
     except (TypeError, ValueError):
-        return None
-    if not isinstance(reply, dict) or "tool" not in reply:
-        return None
+        bare = None
+    if isinstance(bare, dict):
+        objects, bare_json = [bare], True
+    else:
+        # Not a bare JSON object: pick out every JSON object in the text.
+        objects, bare_json = [], False
+        decoder = json.JSONDecoder()
+        i = 0
+        while True:
+            i = text.find("{", i)
+            if i < 0:
+                break
+            try:
+                obj, end = decoder.raw_decode(text, i)
+            except ValueError:
+                i += 1
+                continue
+            if isinstance(obj, dict):
+                objects.append(obj)
+            i = end
 
-    args = reply.get("args", {})
-    if not isinstance(args, dict):
+    calls = [o for o in objects if "tool" in o and isinstance(o.get("args", {}), dict)]
+    if not calls:
+        if not objects:
+            parse_action.deviation = "no_json"
         return None
-    return reply["tool"], args
+    if len(calls) > 1:
+        parse_action.deviation = "several_calls"
+    elif not bare_json:
+        parse_action.deviation = "prose_around_json"
+    return calls[0]["tool"], calls[0].get("args", {})
+
+
+parse_action.deviation = None
+ONE_CALL_NOTICE = "One tool call per reply. Only the first call was executed."

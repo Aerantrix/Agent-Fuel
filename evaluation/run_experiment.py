@@ -85,6 +85,10 @@ def one_run(scenario, config_code, repeat):
         "halt_reason": summary["halt_reason"],
         "task_completed": outcome["completed"],
         "task_completable": scenario["task_completable"],
+        # Replies that departed from the action protocol (prose around the
+        # JSON, several calls in one reply): a finding about the model, kept
+        # here so it is not lost now that the parser reads past them.
+        "deviations": outcome.get("deviations", []),
         # The two numbers that answer the research question:
         "false_interruption": (
             summary["halted"] and scenario["group"] == "C"

@@ -179,6 +179,7 @@ for i, (scenario, arm, repeat) in enumerate(plan, start=1):
         "mechanism_matched": bool(row["mechanism_matched"]),
         "task_completed": bool(row["task_completed"]),
         "task_completable": bool(row["task_completable"]),
+        "deviations": row.get("deviations", []),
         "seconds": round(time.monotonic() - started, 1),
         "trace": trace, "curve": curve, "decisions": decision_rows(journal),
     }
