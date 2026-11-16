@@ -112,7 +112,7 @@ def traced_call(messages, model=runner.DEFAULT_MODEL):
     """Record each step: what the agent said and what came back from the tool."""
     trace = current["trace"]
     if trace:
-        new = [m["content"] for m in messages[current["seen"]:] if m["role"] == "user"]
+        new = [m["content"] for m in messages[current["seen"]:] if m["role"] in ("user", "tool")]
         trace[-1]["tool_result"] = "\n".join(new)[:2000]
     text, tin, tout, cost = real_call(messages, model)
     spent["usd"] += cost

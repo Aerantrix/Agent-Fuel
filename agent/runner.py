@@ -163,11 +163,16 @@ def call_model(messages, model=DEFAULT_MODEL):
     where the model accepts it (see NO_TEMPERATURE), no retries on either
     backend: retry behaviour is what the experiment measures. On the local backend cost_usd is 0.0.
     """
+    if _NATIVE_TOOLS is not None:
+        return _call_native(messages, model, _NATIVE_TOOLS)
     if BACKEND == "ollama":
         return _call_ollama(messages, model)
     if BACKEND == "anthropic":
         return _call_anthropic(messages, model)
     raise ValueError(f"unknown AGENT_FUEL_BACKEND: {BACKEND}")
+
+
+_NATIVE_TOOLS = None  # set by run_agent around a call on the built-in tool path
 
 
 def _call_ollama(messages, model):
@@ -216,6 +221,99 @@ def _call_anthropic(messages, model):
     return text, tin, tout, _anthropic_cost(model, tin, tout)
 
 
+# --- built-in tool calling ----------------------------------------------------
+#
+# Used when the real prompt's framework passes tools to the provider as a
+# schema (AGENT_FUEL_REAL_PROMPT with a native adapter). The conversation is
+# kept provider-neutral: {"role": "system"|"user"|"assistant"|"tool", ...},
+# an assistant turn carrying "tool_calls": [{"id", "name", "args"}] and a
+# tool turn carrying "tool_call_id", "content" and "is_error". The model's
+# reply is returned as JSON text {"text": ..., "tool_calls": [...]} so the
+# worker's trace, the parser and the replay all read one shape.
+
+def _call_native(messages, model, tools):
+    import json
+    if BACKEND == "ollama":
+        reply, tin, tout, cost = _call_ollama_native(messages, model, tools)
+    elif BACKEND == "anthropic":
+        reply, tin, tout, cost = _call_anthropic_native(messages, model, tools)
+    else:
+        raise ValueError(f"unknown AGENT_FUEL_BACKEND: {BACKEND}")
+    return json.dumps(reply, ensure_ascii=False), tin, tout, cost
+
+
+def _call_ollama_native(messages, model, tools):
+    import json
+    import urllib.request
+
+    out = []
+    for m in messages:
+        if m["role"] == "assistant":
+            msg = {"role": "assistant", "content": m.get("content") or ""}
+            if m.get("tool_calls"):
+                msg["tool_calls"] = [{"function": {"name": c["name"], "arguments": c["args"]}} for c in m["tool_calls"]]
+            out.append(msg)
+        elif m["role"] == "tool":
+            out.append({"role": "tool", "content": m["content"]})
+        else:
+            out.append({"role": m["role"], "content": m["content"]})
+    body = json.dumps({
+        "model": model, "messages": out, "stream": False,
+        "tools": [{"type": "function", "function": {"name": t["name"], "description": t["description"],
+                                                    "parameters": t["input_schema"]}} for t in tools],
+        "options": {"temperature": TEMPERATURE, "num_ctx": OLLAMA_NUM_CTX,
+                    **({"seed": 0} if TEMPERATURE == 0 else {})},
+    }).encode()
+    request = urllib.request.Request(f"{OLLAMA_URL}/api/chat", data=body,
+                                     headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=600) as response:
+        r = json.loads(response.read())
+    msg = r["message"]
+    calls = [{"id": f"call_{i}", "name": c["function"]["name"], "args": c["function"].get("arguments") or {}}
+             for i, c in enumerate(msg.get("tool_calls") or [])]
+    return ({"text": msg.get("content") or "", "tool_calls": calls},
+            r["prompt_eval_count"], r["eval_count"], 0.0)
+
+
+def _call_anthropic_native(messages, model, tools):
+    import anthropic
+
+    system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
+    out = []
+    for m in messages:
+        if m["role"] == "system":
+            continue
+        if m["role"] == "assistant":
+            blocks = [{"type": "text", "text": m["content"]}] if m.get("content") else []
+            blocks += [{"type": "tool_use", "id": c["id"], "name": c["name"], "input": c["args"]}
+                       for c in m.get("tool_calls") or []]
+            out.append({"role": "assistant", "content": blocks or [{"type": "text", "text": "(no reply)"}]})
+            continue
+        block = ({"type": "tool_result", "tool_use_id": m["tool_call_id"], "content": m["content"],
+                  "is_error": bool(m.get("is_error"))} if m["role"] == "tool"
+                 else {"type": "text", "text": m["content"]})
+        # The API wants user turns to alternate with assistant turns, so a
+        # tool result and a notice that follow each other share one turn.
+        if out and out[-1]["role"] == "user":
+            out[-1]["content"].append(block)
+        else:
+            out.append({"role": "user", "content": [block]})
+
+    client = anthropic.Anthropic(max_retries=0)
+    params = {"model": model, "max_tokens": 16000, "system": system, "messages": out, "tools": tools}
+    if model not in NO_TEMPERATURE:
+        params["temperature"] = TEMPERATURE
+    if model in THINKING_MODELS and THINKING == "off":
+        params["thinking"] = {"type": "disabled"}
+    if model in THINKING_MODELS and EFFORT:
+        params["output_config"] = {"effort": EFFORT}
+    response = client.messages.create(**params)
+    text = "".join(b.text for b in response.content if b.type == "text")
+    calls = [{"id": b.id, "name": b.name, "args": dict(b.input)} for b in response.content if b.type == "tool_use"]
+    tin, tout = response.usage.input_tokens, response.usage.output_tokens
+    return {"text": text, "tool_calls": calls}, tin, tout, _anthropic_cost(model, tin, tout)
+
+
 def _anthropic_cost(model, input_tokens, output_tokens):
     rates = ANTHROPIC_RATES.get(model)
     if rates is None:
@@ -234,13 +332,18 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
     # the list, so the long tasks never reached the tool. See docs/work_log.md.
     if len(spec["domains"]) > 1:
         prompt += " The domains are: " + ", ".join(spec["domains"]) + "."
-    first = ADAPTER.first_message(prompt) if ADAPTER else action_protocol(tools) + "\n" + prompt
-    messages = [{"role": "user", "content": first}]
+    messages = ADAPTER.messages(prompt) if ADAPTER else [
+        {"role": "user", "content": action_protocol(tools) + "\n" + prompt}]
     completed = False
     deviations = []  # (step, kind): how the reply departed from the protocol
     parser = ADAPTER if ADAPTER else parse_action
     say_result = ADAPTER.observation if ADAPTER else (lambda r: f"Tool result: {r}")
     say_error = ADAPTER.error if ADAPTER else (lambda e: f"Tool error: {e}")
+    native = bool(ADAPTER and ADAPTER.native)
+    if native:
+        from agent.real_prompts import TOOL_SCHEMA
+        tool_schemas = [TOOL_SCHEMA]
+    call_id = None  # the id of the tool call being answered, native path only
 
     while controller.step < MAX_STEPS_ABSOLUTE:
         # Configuration C: the blunt iteration cap being compared against.
@@ -267,9 +370,19 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
         for warning in controller.drain_warnings():
             messages.append({"role": "user", "content": warning})
 
+        global _NATIVE_TOOLS
+        _NATIVE_TOOLS = tool_schemas if native else None
         text, tin, tout, cost = call_model(messages)
+        _NATIVE_TOOLS = None
         controller.record_model_call(tin, tout, cost)
-        messages.append({"role": "assistant", "content": text})
+        if native:
+            import json as _json
+            reply = _json.loads(text)
+            calls = reply.get("tool_calls") or []
+            messages.append({"role": "assistant", "content": reply.get("text", ""), "tool_calls": calls})
+            call_id = calls[0]["id"] if calls else None
+        else:
+            messages.append({"role": "assistant", "content": text})
 
         action = parser.parse(text) if ADAPTER else parse_action(text)
         if parser.deviation:
@@ -285,19 +398,27 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
         if before.stops:
             break
 
+        def answer(content, is_error=False):
+            # Text path: the tool's reply is a user message. Built-in path:
+            # a tool message answering the call by id.
+            if native:
+                messages.append({"role": "tool", "tool_call_id": call_id, "content": content, "is_error": is_error})
+            else:
+                messages.append({"role": "user", "content": content})
+
         tool = tools.get(tool_name)
         if tool is None:
-            messages.append({"role": "user", "content": f"No such tool: {tool_name}"})
+            answer(f"No such tool: {tool_name}", is_error=True)
             continue
 
         try:
             result = tool.get_metrics(**args)
         except Exception as exc:  # the fake tools raise on purpose
             after = controller.after_tool(tool_name, args, error=exc)
-            messages.append({"role": "user", "content": say_error(exc)})
+            answer(say_error(exc), is_error=True)
         else:
             after = controller.after_tool(tool_name, args, result=result)
-            messages.append({"role": "user", "content": say_result(result)})
+            answer(say_result(result))
         # A stop after a successful call is the result fingerprint's case:
         # the same answer three times. An earlier version only checked the
         # verdict after an error, so that stop set controller.halted and the

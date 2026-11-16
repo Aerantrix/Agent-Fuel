@@ -65,7 +65,12 @@ def _args_from(value):
 
 class Adapter:
     name = ""
+    native = False    # True: tools go to the API as a schema, not in the text
     deviation = None  # set by parse(), like runner.parse_action.deviation
+
+    def messages(self, task):
+        """The conversation the run starts with."""
+        return [{"role": "user", "content": self.first_message(task)}]
 
     def __init__(self, path=None):
         # Without a path the adapter can only parse replies, which is all the
@@ -210,7 +215,109 @@ class Smolagents(Adapter):
         return call["name"], _args_from(call.get("arguments", {}))
 
 
-ADAPTERS = {"P01": Smolagents, "P03": LlamaIndexReAct, "P04": LangChainMRKL}
+# --- built-in tool calling ------------------------------------------------
+#
+# These frameworks say nothing about a call format in the prompt: the tool
+# goes to the provider as a schema and the call comes back as a structured
+# block. The runner's native path records each reply as JSON
+# {"text": ..., "tool_calls": [{"id", "name", "args"}]} so the trace, the
+# replay and the parser below all read the same thing.
+
+TOOL_SCHEMA = {
+    "name": TOOL_NAME,
+    "description": TOOL_DESCRIPTION,
+    "input_schema": {"type": "object", "properties": {k: {kk: vv for kk, vv in v.items() if kk != "nullable"}
+                                                      for k, v in TOOL_ARGS.items()},
+                     "required": ["domain"]},
+}
+
+
+class NativeAdapter(Adapter):
+    native = True
+
+    def system_prompt(self):
+        raise NotImplementedError
+
+    def messages(self, task):
+        return [{"role": "system", "content": self.system_prompt()},
+                {"role": "user", "content": task}]
+
+    def parse(self, reply):
+        self.deviation = None
+        try:
+            r = json.loads(reply)
+        except ValueError:
+            self.deviation = "no_json"
+            return None
+        calls = r.get("tool_calls") or []
+        if not calls:
+            return None
+        if len(calls) > 1:
+            self.deviation = "several_calls"
+        return calls[0]["name"], _args_from(calls[0].get("args", {}))
+
+    @staticmethod
+    def observation(result):
+        return str(result)
+
+    @staticmethod
+    def error(exc):
+        return str(exc)
+
+
+class CodexCLI(NativeAdapter):
+    """P08. prompt.md as it is: it has no template variables."""
+    name = "codex"
+
+    def system_prompt(self):
+        return self.text
+
+
+class Goose(NativeAdapter):
+    """P09. system.md rendered as the framework does with one extension (ours)
+    and the default turn-context block from moim.rs (piece 2 of the file)."""
+    name = "goose"
+
+    def system_prompt(self):
+        main, piece2 = re.split(r"\n\n===== PIECE 2[^\n]*=====\n", self.text, maxsplit=1)
+        moim = piece2.replace("{turn_context_tag}", "turn-context").strip("\n")
+        out = main.replace("{% if moim_system_prompt_block is defined %}\n{{ moim_system_prompt_block }}\n{% endif %}", moim)
+        out = out.replace("{% if include_extensions and not code_execution_mode %}\n", "")
+        ext = (f"\n## {TOOL_NAME}\n\n")
+        out = re.sub(r"\{% if \(extensions is defined\) and extensions %\}\n(.*?)\{% for extension in extensions %\}.*?\{% endfor %\}\n\n\{% else %\}.*?\{% endif %\}\n\{% endif %\}",
+                     lambda m: m.group(1).rstrip("\n") + "\n" + ext, out, flags=re.S)
+        return out.strip("\n") + "\n"
+
+
+class SWEAgent(NativeAdapter):
+    """P07. system_template is the system message; instance_template, with
+    the task as the problem statement, is the first user message; tool
+    output is wrapped in next_step_template."""
+    name = "swe-agent"
+
+    def _template(self, key):
+        m = re.search(rf"^\s*{key}: \|-\n((?:      [^\n]*\n|\n)+)", self.text, re.M)
+        return "\n".join(l[6:] for l in m.group(1).splitlines()).strip("\n")
+
+    def system_prompt(self):
+        return self._template("system_template")
+
+    def messages(self, task):
+        instance = self._template("instance_template").replace("{{working_dir}}", "/workspace") \
+            .replace("{{problem_statement}}", task)
+        return [{"role": "system", "content": self.system_prompt()}, {"role": "user", "content": instance}]
+
+    @staticmethod
+    def observation(result):
+        return f"OBSERVATION:\n{result}"
+
+    @staticmethod
+    def error(exc):
+        return f"OBSERVATION:\n{exc}"
+
+
+ADAPTERS = {"P01": Smolagents, "P03": LlamaIndexReAct, "P04": LangChainMRKL,
+            "P07": SWEAgent, "P08": CodexCLI, "P09": Goose}
 
 
 def load(path):
