@@ -429,3 +429,34 @@ as an error result, tool results first in the turn.
   no longer measures; Ahrefs documents no such text. Proposed as a fourth
   condition (base prompt, error text with "try again later") rather than
   put back into the scenarios.
+
+### After the rerun (16 November, evening)
+
+The four Haiku variants were rerun with the fixed parser, 81 runs each,
+plus the network gaps filled; the stand now ends no run. Three things read
+differently from the morning:
+
+- **Haiku without thinking under strict** persists about four steps for
+  1,800 tokens on average and never reaches the ceiling; the morning's
+  "gives up in two steps" was the stand. Pooled Haiku, all four variants:
+  lenient 1,230 → 790 tokens with Agent Fuel, base 1,389 → 770, strict
+  3,533 → 1,025 (94–100 percent of the excess); the step cap and the account
+  limit save nothing at any level, 0 covered of 234 refusal runs.
+- **The honest forty-site chain costs Haiku about 106,000 tokens** over 41
+  steps, not 51,000: that was where the 50,000-token run budget cut it. Any
+  control that counts steps or tokens spoils all 41 Haiku runs; the three
+  mechanisms spoil none. Qwen finishes the chain in 5 of 18 runs and stops
+  around step 12 otherwise, a limit of the model. Recommendation: report
+  Agent Fuel as the three mechanisms in the headline and the run budget as
+  a separate last-resort setting above the cost of the longest honest task.
+- **The fourth condition, base prompt with "Please try again later." in
+  transient errors**, does not provoke Haiku (1,307 tokens, 3.5 steps, as
+  base) and barely moves Qwen (545 tokens, 2.5 steps against 385 and 2.0);
+  the prompt's pressure is the stronger lever for both.
+
+Real prompts: nine of ten run, through text parsers (P01, P03, P04) and the
+built-in path (P02, P05, P06, P07, P08, P09); AutoGPT is not run by the
+author's decision, our own prompt counts as the tenth. All behave like
+lenient and base except Qwen under LangChain's MRKL prompt, the one
+runaway. Tails on the long scenarios were still running when this was
+written and are merged as they land.
