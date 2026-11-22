@@ -49,13 +49,26 @@ PANEL = """
   <div class="rows">
     <div class="row"><span class="k">Models</span><div class="opts" id="l-configs">
       <label class="opt"><input type="checkbox" id="c-qwen" value="qwen">Qwen · local, free</label>
-      <label class="opt"><input type="checkbox" id="c-haiku" value="haiku">Haiku 5.5 · thinking</label>
-      <label class="opt"><input type="checkbox" id="c-haiku-nothink" value="haiku-nothink">Haiku 5.5 · no thinking</label>
+      <label class="opt"><input type="checkbox" id="c-haiku-think-low" value="haiku-think-low">Haiku 5.5 · thinking · low effort</label>
+      <label class="opt"><input type="checkbox" id="c-haiku-think-high" value="haiku-think-high">Haiku 5.5 · thinking · high effort</label>
+      <label class="opt"><input type="checkbox" id="c-haiku-nothink-low" value="haiku-nothink-low">Haiku 5.5 · no thinking · low effort</label>
+      <label class="opt"><input type="checkbox" id="c-haiku-nothink-high" value="haiku-nothink-high">Haiku 5.5 · no thinking · high effort</label>
+    </div></div>
+    <div class="row"><span class="k">Condition</span><div class="opts" id="l-cond">
+      <label class="opt"><input type="radio" name="l-cond" value="lenient">Lenient · may give up</label>
+      <label class="opt"><input type="radio" name="l-cond" value="base" checked>Base · nothing said</label>
+      <label class="opt"><input type="radio" name="l-cond" value="strict">Strict · must not finish without data</label>
+    </div></div>
+    <div class="row"><span class="k">Temperature</span><div class="opts" id="l-temp" style="align-items:center">
+      <label class="opt num"><input type="radio" name="l-temp" value="0" checked>0</label>
+      <label class="opt num"><input type="radio" name="l-temp" value="0.7">0.7</label>
+      <label class="opt num"><input type="radio" name="l-temp" value="1">1</label>
+      <span class="cap">Qwen only. Haiku cannot be set and always runs at its default.</span>
     </div></div>
     <div class="row"><span class="k">Presets</span><div class="opts">
-      <button type="button" class="preset" data-preset="calib">Calibration: scenarios 1, 2, 9, 11, 13 · arm A</button>
+      <button type="button" class="preset" data-preset="stage1">Stage 1: every scenario · arm A · 3 repeats</button>
       <button type="button" class="preset" data-preset="one">Scenario 1 · A and G</button>
-      <button type="button" class="preset" data-preset="all">Full sweep: 15 × 7 × 3</button>
+      <button type="button" class="preset" data-preset="all">Full sweep: 9 × 7 × 3</button>
     </div></div>
     <div class="row"><span class="k">Scenarios</span><div class="opts" id="l-scen"></div></div>
     <div class="row"><span class="k">Arms</span><div class="opts" id="l-arms"></div></div>
@@ -77,7 +90,7 @@ PANEL = """
 
 POLL = """
 // --- local data source: poll server.py instead of the claude.ai database ----
-const SC_PRESETS = {calib: {scen: [1, 2, 9, 11, 13], arms: ["A"], reps: 1},
+const SC_PRESETS = {stage1: {scen: SCENARIOS.map(s => s[0]), arms: ["A"], reps: 3},
   one: {scen: [1], arms: ["A", "G"], reps: 1}, all: {scen: SCENARIOS.map(s => s[0]), arms: ARMS.map(a => a[0]), reps: 3}};
 function buildLaunch() {
   const sc = $("l-scen"), ar = $("l-arms"), rp = $("l-reps");
@@ -98,13 +111,14 @@ function buildLaunch() {
 function launchParams() {
   const vals = sel => [...document.querySelectorAll(sel + " input:checked")].map(c => c.value);
   return {configs: vals("#l-configs"), scenarios: vals("#l-scen").map(Number), arms: vals("#l-arms"),
-    repeats: Number(vals("#l-reps")[0] || 1), max_cost: Number($("l-cost").value || 1)};
+    repeats: Number(vals("#l-reps")[0] || 1), max_cost: Number($("l-cost").value || 1),
+    condition: vals("#l-cond")[0] || "base", temperature: Number(vals("#l-temp")[0] || 0)};
 }
 function updateCount() {
   const p = launchParams(), n = p.scenarios.length * p.arms.length * p.repeats, total = n * p.configs.length;
   $("l-count").replaceChildren();
   if (!total) { $("l-count").textContent = "pick a model, scenarios and arms"; return; }
-  $("l-count").append(document.createTextNode("will run "), el("b", null, String(total)), document.createTextNode(` run${total === 1 ? "" : "s"}: ${n} × ${p.configs.length} model${p.configs.length === 1 ? "" : "s"}`));
+  $("l-count").append(document.createTextNode("will run "), el("b", null, String(total)), document.createTextNode(` run${total === 1 ? "" : "s"}: ${n} × ${p.configs.length} model${p.configs.length === 1 ? "" : "s"} · ${{lenient: "Lenient", base: "Base", strict: "Strict"}[p.condition]} · t=${p.temperature}`));
 }
 async function post(path, body) {
   const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json", "X-Agent-Fuel": "1"}, body: JSON.stringify(body || {})});
@@ -114,7 +128,8 @@ async function post(path, body) {
 }
 async function start() {
   $("l-err").textContent = "";
-  try { await post("/api/start", launchParams()); poll(); } catch (e) { $("l-err").textContent = e.message; }
+  const p = launchParams();
+  try { await post("/api/start", p); conds = new Set([p.condition]); if (TEMPS.includes(p.temperature)) temps = new Set([p.temperature]); setRuns(allRuns); refresh(); poll(); } catch (e) { $("l-err").textContent = e.message; }
 }
 async function stopRun() { try { await post("/api/stop"); poll(); } catch (e) { $("l-err").textContent = e.message; } }
 
@@ -132,7 +147,7 @@ async function poll() {
   const lg = $("l-log"), atEnd = lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 4;
   lg.textContent = s.log.length ? s.log.join("\\n") : "Nothing yet."; if (atEnd) lg.scrollTop = lg.scrollHeight;
   const good = s.runs.filter(r => !r.error), key = good.length + "|" + good.map(r => r.ts).join(",");
-  if (key !== lastKey) { lastKey = key; runs = good; renderModelChips(); setCurveScenarios(); renderResults(); }
+  if (key !== lastKey) { lastKey = key; setRuns(good); refresh(); }
 }
 buildLaunch(); poll(); setInterval(poll, 2000);
 """

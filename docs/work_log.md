@@ -222,3 +222,254 @@ page was considered and dropped.
 Checked on this Mac with a free Qwen run through the console. The Windows
 steps and the PowerShell key command are untested until a team member on
 Windows runs them.
+
+## 9 November 2026: the stand rebuilt for the revised study design
+
+Decided with the author after a walk through the design, scenario by scenario.
+Everything below is on branch `stand-v2`, uncommitted.
+
+### Nine scenarios instead of fifteen
+
+- **Failure (group A):** 1, 2, 3, 4, 5, 8. A failure is the service not
+  returning what it should: an error, nothing, a part, or garbage.
+- **Healthy work that must not be halted (group C):** 6 and 13. Scenario 6 is
+  reworked: the flapping service now faces a ten-domain task, every failed
+  call succeeds on retry, and the right verdict is to leave it alone.
+- **Reference (group R):** 15, the ordinary short task. It stays out of the
+  false-interruption count because nothing can plausibly halt a two-step run.
+- **Removed:** 7 and 14 (they test wall-clock time, not tokens, and the stub's
+  delay was never switched on), 9 (the stub returned data for the "impossible"
+  period; once fixed it would duplicate 2), 10 (wrong values are not a tool
+  failure), 11 and 12 (the same healthy task as 13 at shorter lengths).
+
+### Three prompt levels, and nothing else varies
+
+The condition is now the prompt level, set by `AGENT_FUEL_PROMPT` in
+`agent/runner.py`:
+
+- **lenient**: the agent is told it may stop when it judges the task impossible
+  (the wording every earlier run had);
+- **base**: nothing is said about giving up;
+- **strict**: base plus the unattended-job instruction, text unchanged from
+  2 November.
+
+The retry hints in the service errors are gone. The tool's replies reach the
+agent as they are at every level, so the only voices in a run are the first
+message and the controller.
+
+### Model variants
+
+Qwen 2.5 7B at a chosen temperature. Haiku 5.5 four ways: thinking on or off,
+effort low or high (`AGENT_FUEL_EFFORT`; the API refuses disabled thinking
+above high). All four were accepted by the API in a one-run check. The two
+models cannot be put under identical settings, so they are compared within
+themselves and across each other by trend only.
+
+### Stub and controller
+
+- Healthy metrics now differ per domain and period, from a hash, so they never
+  change between runs.
+- The tool takes a `cursor`, so in scenario 5 the agent can ask for the next
+  page and gets the same one.
+- The result fingerprint no longer hashes the request or the fields that echo
+  it. Before, a changed query always produced a new print and this half of the
+  loop detector could not fire on its own.
+- Errors count towards the call fingerprint only. Printing the error text as a
+  result would have stopped scenario 6 on its third failure.
+- A circuit-breaker warning is now passed to the agent, like the loop
+  detector's. It used to reach the journal only.
+- `mechanism_matched` compares by prefix, and `expected_mechanism` in
+  `scenarios.json` names the mechanism that the logic above makes fire.
+
+Checked without a model by scripted agents against the stub and the full
+controller: identical retries stop on the third call (call fingerprint),
+varied queries with the same answer stop on the third (result fingerprint),
+varied queries against a dead service stop before the fifth call (breaker),
+401 stops on the first, and scenarios 6, 13 and 15 run to the end.
+
+### Earlier runs
+
+All 2,765 are kept in `console/data/pilot_runs_2026-10-26_to_2026-11-03.jsonl`.
+Sixty match the new lenient level and were carried into `runs.jsonl`, marked
+`pilot`: Qwen, scenarios 1, 2, 3, 4 and 8, arms A, C and D, temperature 1
+(three repeats) and 0 (one). Their one difference from the current stand is
+the tool signature in the prompt, which had no `cursor` then. A new run of the
+same cell replaces the carried record. Nothing else carries over: every Haiku
+run used the default effort, Base and Strict had the give-up wording, Strict
+had the retry hints, and arms E to G ran the old detector.
+
+### Open
+
+- Qwen at the base level answers a ten-domain task with all ten calls in one
+  reply. `parse_action` reads that as "finished", so the run ends at step 1
+  and is recorded as completed with no data. Known since the first sweep.
+- Arms B and C are still run; in the revised design the account limit and the
+  iteration cap are to be computed from arm A's journals instead.
+- `evaluation/analyse.py` and the dashboard figures still use the earlier
+  definitions of the two numbers.
+- README, DEVELOPER, HANDOVER and GETTING_STARTED still describe fifteen
+  scenarios.
+
+## 16 November 2026: the analysis rewritten for the revised design
+
+### What the sweep holds
+
+433 records in `console/data/runs.jsonl` after 9 November, all arm A: Qwen at
+t=1 (three repeats) and t=0 (one), Haiku 5.5 in four variants, at all three
+prompt levels, nine scenarios. 431 usable: one API error, one duplicate.
+
+### `evaluation/analyse.py`
+
+Reads the console's run file instead of `results/runs.csv`. Every control is
+computed over the arm A runs, since the stub is deterministic: the iteration
+cap and the account limit as caps on the token curve, arms D to G by replaying
+the real controller over the recorded calls. Definitions (minimum, excess,
+share of excess, spoiled tasks, covered / not covered / not checked) are in
+the docstring. Outputs `results/summary.md`, `results/replay.csv` (one row per
+run and control, so every figure can be recomputed), `fig1-tradeoff.png`.
+
+Parameters at the top of the file, all open to the author: minimum at step 3,
+step caps 10 to 40 with 15 as the headline, a day of 10 healthy tasks and the
+account limit at 1, 2, 5 and 10 days with 2 as the headline. The $2 cost
+ceiling is out of the replay; the 50,000-token run budget stays.
+
+### Harness fix: a stop after a successful call was ignored
+
+`agent/runner.py` checked the controller's verdict only after a tool error.
+A STOP from the result fingerprint (the same answer three times, scenarios 2,
+5, 8) set `controller.halted` and the loop went on. Fixed: the verdict is
+checked on both branches. No live controlled run had been made on the new
+stand, so nothing is invalidated; the pilot's arms E to G ran the old
+detector and were already set aside.
+
+### First reading
+
+- Without control the agents mostly give up early. At lenient and base,
+  Qwen stops at step 2 every time; Haiku within three steps in about half the
+  runs. Only strict makes a runaway: Qwen burns 80 to 100k tokens in nine of
+  eighteen runs (cut at 60 steps), Haiku with thinking 4 to 6k on average.
+- Agent Fuel saves essentially the whole excess (96 to 100 percent) at every
+  level, and the step cap and the account limit save nothing on Haiku,
+  because Haiku's runaways are short (4 to 9 steps) and cheap.
+- The run budget of 50,000 tokens spoils scenario 13 on every model: the
+  honest forty-site task costs 51 to 52k cumulative. Without the run budget
+  the three mechanisms spoil no Haiku control run.
+- Qwen under strict spoils scenario 6 three times in four: on a retry it adds
+  `"retry": "true"` to the call, the stub rejects the argument, and the
+  breaker counts that as a failure. A stand property, not the model's loop.
+- Stand defects, counted as not checked: Qwen answers the ten- and forty-site
+  tasks with every call in one reply at lenient and base (16 runs); three
+  Haiku thinking-low strict replies start with prose before the JSON.
+
+### Later on 16 November: the parser, the real prompts, the console
+
+**The stand was ending runs the agent meant to continue.** `parse_action`
+returned None on anything but a bare JSON object and the runner read that
+as "finished". Counted over the sweep: 81 of 431 runs ended that way, the
+reply holding a tool call the parser could not read (a sentence before the
+JSON, several calls in one reply). Haiku 5.5 without thinking under strict
+lost 28 of 36 refusal runs to it, so the earlier reading "no-thinking Haiku
+gives up in two or three steps whatever the prompt" is withdrawn: it was the
+stand stopping it. The parser now takes the first tool call in the reply and
+records the departure from the protocol (`prose_around_json`,
+`several_calls`, `no_json`) in the run record; on several calls the agent is
+told only the first was executed. The 81 runs stay marked *not checked* until
+the Haiku variants are rerun (`launch.py` in the session scratchpad; Qwen is
+left as it was, few of its runs were affected).
+
+**Real prompts.** Ten framework defaults collected and labelled in the
+`real-prompts` branch (PR #1), with the Ahrefs API responses. The stand runs
+three of them, the text protocols: `AGENT_FUEL_REAL_PROMPT=<file>` (worker
+`--real-prompt`) puts the framework's prompt in place of ours through an
+adapter in `agent/real_prompts.py` that renders our tool the framework's way
+and reads replies in its format (LlamaIndex ReAct, LangChain MRKL,
+smolagents JSON actions). The run is recorded with the file's name as its
+condition. The seven built-in-tool-calling prompts need a native tool path
+and are not run. First runs: Qwen and Haiku thinking-low, 9 scenarios, one
+repeat, arm A.
+
+**The console shows the controller again.** Columns of arms nobody had run
+were hidden, which removed the controller from view; `analyse.py` now writes
+`console/data/computed.jsonl`, one record per arm A run and control, and the
+console serves them with a dashed border where no live run of the cell
+exists. `console/merge_runs.py` folds run files written elsewhere into
+`runs.jsonl`, superseded records going to `superseded.jsonl`.
+
+### Real prompts on the built-in path, and two things the first runs showed
+
+Three more prompts run: SWE-agent (P07), Codex CLI (P08) and Goose (P09),
+through a second path to both providers where our tool goes to the API as a
+schema and the call comes back structured (`agent/real_prompts.py`,
+`NativeAdapter`; `runner._call_native`). Each reply is recorded as JSON
+`{"text", "tool_calls"}`. Checked live on Qwen through Ollama. On the
+Anthropic side the first batch lost nine runs to a 400: when the model
+emits two `tool_use` blocks in one reply, every id must get a `tool_result`
+in the next turn; the extra calls are now answered with the one-call notice
+as an error result, tool results first in the turn.
+
+- **Qwen under LangChain's MRKL prompt is the one real-prompt runaway so
+  far**: 60 steps on the auth error, 86,846 tokens on average over the six
+  refusal scenarios; Agent Fuel takes 98 percent of the excess. Under the
+  other five prompts both models stop in two or three steps, as under
+  lenient and base.
+- **Calls to tools that do not exist bypass the controller.** After two
+  timeouts under LangChain, Qwen invents tools ("Check service status",
+  "Contact support"); the runner answers "No such tool" without calling
+  `before_tool`/`after_tool`, so the loop detector never sees them and the
+  run is *not covered*. Open decision: route unknown-tool calls through the
+  controller as failed calls, which is what a framework's tool layer would
+  show it.
+- **SWE-agent's instance template is about code**, "I've uploaded a python
+  code repository ... consider the following PR description". Qwen reads
+  our task as a coding task and calls `analytics` with `path` and `content`,
+  gets the bad-argument error three times and gives up. A property of that
+  prompt on our task, to state beside its rows.
+- The retry hint in service errors, removed on 9 November to keep the
+  prompt levels the only difference, is a lever of its own that the sweep
+  no longer measures; Ahrefs documents no such text. Proposed as a fourth
+  condition (base prompt, error text with "try again later") rather than
+  put back into the scenarios.
+
+### After the rerun (16 November, evening)
+
+The four Haiku variants were rerun with the fixed parser, 81 runs each,
+plus the network gaps filled; the stand now ends no run. Three things read
+differently from the morning:
+
+- **Haiku without thinking under strict** persists about four steps for
+  1,800 tokens on average and never reaches the ceiling; the morning's
+  "gives up in two steps" was the stand. Pooled Haiku, all four variants:
+  lenient 1,230 → 790 tokens with Agent Fuel, base 1,389 → 770, strict
+  3,533 → 1,025 (94–100 percent of the excess); the step cap and the account
+  limit save nothing at any level, 0 covered of 234 refusal runs.
+- **The honest forty-site chain costs Haiku about 106,000 tokens** over 41
+  steps, not 51,000: that was where the 50,000-token run budget cut it. Any
+  control that counts steps or tokens spoils all 41 Haiku runs; the three
+  mechanisms spoil none. Qwen finishes the chain in 5 of 18 runs and stops
+  around step 12 otherwise, a limit of the model. Recommendation: report
+  Agent Fuel as the three mechanisms in the headline and the run budget as
+  a separate last-resort setting above the cost of the longest honest task.
+- **The fourth condition, base prompt with "Please try again later." in
+  transient errors**, does not provoke Haiku (1,307 tokens, 3.5 steps, as
+  base) and barely moves Qwen (545 tokens, 2.5 steps against 385 and 2.0);
+  the prompt's pressure is the stronger lever for both.
+
+Real prompts: nine of ten run, through text parsers (P01, P03, P04) and the
+built-in path (P02, P05, P06, P07, P08, P09); AutoGPT is not run by the
+author's decision, our own prompt counts as the tenth. All behave like
+lenient and base except Qwen under LangChain's MRKL prompt, the one
+runaway. Tails on the long scenarios were still running when this was
+written and are merged as they land.
+
+**Decision (author, 16 November, evening).** The 50,000-token run budget
+stays. Agent Fuel is compared as it is, and that it spoils the forty-site
+control task is reported as a weakness of the controller, with the
+"mechanisms only" row kept as the explanation. Setting the budget relative
+to the longest honest task is future work. Unknown-tool calls through the
+controller: still open.
+
+**Data at the end of 16 November.** 636 arm A runs in `console/data/runs.jsonl`,
+13 conditions: lenient, base, strict, base+hint, and nine real prompts (7–9
+of 9 scenarios per model and prompt; the gaps are single API or Ollama
+timeouts). All Haiku variants rerun with the fixed parser; no run ended by
+the stand. Pull requests: #1 real prompts, #2 stand v2.

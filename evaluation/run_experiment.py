@@ -1,4 +1,4 @@
-"""Experiment runner: 15 scenarios x 7 configurations x 3 repeats = 315 runs.
+"""Experiment runner: 9 scenarios x 7 configurations x 3 repeats = 189 runs.
 
 Writes two CSVs:
     results/runs.csv       one row per run
@@ -85,13 +85,20 @@ def one_run(scenario, config_code, repeat):
         "halt_reason": summary["halt_reason"],
         "task_completed": outcome["completed"],
         "task_completable": scenario["task_completable"],
+        # Replies that departed from the action protocol (prose around the
+        # JSON, several calls in one reply): a finding about the model, kept
+        # here so it is not lost now that the parser reads past them.
+        "deviations": outcome.get("deviations", []),
         # The two numbers that answer the research question:
         "false_interruption": (
             summary["halted"] and scenario["group"] == "C"
         ),
         "expected_mechanism": scenario["expected_mechanism"],
+        # The scenario names a mechanism; the controller reports which of its
+        # prints fired (loop_detector_call_fingerprint, ...), hence the prefix.
         "mechanism_matched": (
-            summary["halt_mechanism"] == scenario["expected_mechanism"]
+            (summary["halt_mechanism"] or "").startswith(scenario["expected_mechanism"])
+            if scenario["expected_mechanism"] else summary["halt_mechanism"] is None
         ),
     }, controller.journal.to_csv_rows()
 
