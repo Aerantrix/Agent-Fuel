@@ -1,7 +1,38 @@
-# Agent Fuel: what needs implementing
+# Agent Fuel: the developer brief
 
 CSIT305 research project. This repository is an instrument for an experiment,
 not a product. Read this page before changing anything.
+
+---
+
+## Where things stand (22 November 2026)
+
+This page is the brief written on 26 October, before anything had run. It is
+kept because the constraints in it still hold. What has changed since:
+
+- Both stub functions are implemented and the stand has run end to end on
+  Qwen 2.5 7B (Ollama) and Claude Haiku 5.5. Results: `results/summary.md`,
+  history: `docs/work_log.md`.
+- **Nine scenarios, not fifteen**, in `evaluation/scenarios.json` version 2.0:
+  six tool failures (1, 2, 3, 4, 5, 8), two healthy control tasks (6 on ten
+  sites, 13 on forty) and the reference task (15). The full sweep is
+  9 x 7 x 3 = 189 runs. Scenarios 7, 9, 10, 11, 12 and 14 are gone, so any
+  mention of them below is historical.
+- **Only arm A runs live.** Arms B to G are computed from arm A's recorded
+  calls in `evaluation/analyse.py`: the cap and the account limit as cuts on
+  the token curve, D to G by replaying the controller against the same
+  deterministic stub.
+- **`parse_action` is tolerant.** A reply that contains one valid tool call
+  with prose around it is accepted and the deviation is recorded in the run,
+  rather than ending the run as "finished". Strict parsing hid the loops it
+  was meant to measure.
+- **The prompt is a condition.** `AGENT_FUEL_PROMPT=lenient|base|strict`
+  changes the first message only; `AGENT_FUEL_EFFORT` sets Haiku's effort;
+  `AGENT_FUEL_TEMPERATURE` sets Qwen's temperature (the main sweep is at 1,
+  with 0 as the extra). Haiku accepts no temperature. Real framework prompts
+  run through `agent/real_prompts.py`.
+- The console (`console/`) is the usual way to start runs; the command line
+  below still works.
 
 ---
 
@@ -53,7 +84,7 @@ Requirements, all of them load-bearing:
 | `cost_usd` computed from the provider's published rates | Note that the cheap tier has a price step above 100K tokens in the prompt, so cost is not linear in tokens. If this is awkward, return `0.0` and leave it: tokens are the primary metric, cost is secondary |
 
 Default model is `claude-haiku-5-5`. Do not substitute a larger model without
-asking: the sweep is 315 runs and the cost difference is twentyfold or more.
+asking: the sweep is 189 runs and the cost difference is twentyfold or more.
 
 ### 2. `parse_action(text)`
 
@@ -69,7 +100,9 @@ If the model names a tool that does not exist, return it as-is: the runner
 already handles that case and the behaviour is part of what gets measured. If
 the reply is not valid JSON, return `None` rather than repairing it. A model
 that cannot follow the protocol is a finding about that model, and quietly
-fixing its output would hide it.
+fixing its output would hide it. (Revised 16 November: a reply that carries one
+valid call inside other text is accepted, and the format deviation is written
+to the run record instead. See the note at the top.)
 
 `None` does not mean success. Six scenarios cannot be completed at all, and an
 agent giving up on one also lands here. The run record keeps
@@ -156,7 +189,7 @@ AGENT_FUEL_BACKEND=ollama python -m evaluation.run_experiment --only 1 --arms A 
 ```
 
 **Read the run count on the first line before letting anything proceed.** The
-last command is 2 runs. Without the flags it is 315, which is hours locally and
+last command is 2 runs. Without the flags it is 189, which is hours locally and
 real money on a hosted backend. `--dry-run` prints the count and stops.
 
 Scenario 1 under arm A burns tokens steadily and stops at
@@ -181,13 +214,16 @@ and lowercases strings and does nothing else. Normalising harder collapses
 legitimate calls to forty different domains) then reads as a loop. That is a
 false positive against a healthy run, which is half of what we measure.
 
-**2. `latency_counts_as_failure: false` in `control/policies.yaml`.** Scenario
-14 is a service that is slow but working correctly. If slowness counts as
-failure, the circuit breaker kills a healthy run.
+**2. `latency_counts_as_failure: false` in `control/policies.yaml`.** A slow
+but working service is not a failure. If slowness counts as failure, the
+circuit breaker kills a healthy run. (The scenario built for this, 14, was
+removed on 9 November; the rule stays.)
 
 **3. The circuit breaker uses a sliding window, not a consecutive counter.**
-Scenario 6 is a service that alternates success and failure. A consecutive
-counter never trips on it.
+Scenario 6 is a service that alternates success and failure across ten sites.
+A consecutive counter never trips on it. Since 9 November the scenario is a
+control task: the agent gets every site on the second try, so a halt here is a
+false interruption.
 
 **4. The `ARMS` table in `control/agent_fuel.py`.** Arms D to G add exactly one
 mechanism each. The whole point is that the difference between two adjacent
@@ -214,7 +250,7 @@ Arm A is designed to burn tokens. Set `HARD_CEILING_TOKENS` in
 `evaluation/run_experiment.py` from a real measurement, not from the
 placeholder currently there.
 
-Run five scenarios first, look at what they actually cost, multiply by 315,
+Run five scenarios first, look at what they actually cost, multiply by 189,
 then set the ceiling. Without this you reproduce the incident the project is
 about, at your own expense.
 
