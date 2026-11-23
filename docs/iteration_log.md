@@ -6,11 +6,11 @@ entry per defect, in the order found. Each entry: what was observed, with
 numbers; the diagnosis; the change, and where; the retest. The numbers are
 the ones recorded at the time and are not updated afterwards. The work around
 these entries, by date, is in `work_log.md`; the changes to the study design
-itself are in `methodology_changes.md`.
+itself are in `methodology_changes.md`. Weeks are the project's weeks, counted from Monday 21 September 2026 as week 1; the final package is due at the end of week 10.
 
 ---
 
-## 2026-10-26 — Review of the brief before the first run
+## Week 6 — Review of the brief before the first run
 
 **Observed.** Reading `DEVELOPER.md` and the code before anything ran: the
 documented `--only` flag was not parsed, so the check command would have
@@ -30,7 +30,7 @@ action protocol for both backends; git initialised.
 **Retest.** The check command `--only 1 --arms A G --repeats 1` ran end to
 end and wrote real provider token counts (370 tokens in both configurations).
 
-## 2026-10-26 — The multi-domain tasks never named their domains
+## Week 6 — The multi-domain tasks never named their domains
 
 **Observed.** First hosted sweep, Haiku 5.5, 105 runs. In scenarios 11, 12
 and 13 the agent answered in one step that no domains had been given and
@@ -49,7 +49,7 @@ configurations, 21 runs. Without control the tasks complete: ten domains in
 loop detector passed its trap: forty calls to forty domains were never read
 as a loop.
 
-## 2026-10-26 — The stub returned the same metrics for every domain
+## Week 6 — The stub returned the same metrics for every domain
 
 **Observed.** In the same rerun, four runs ended early because the agent
 noticed that site 2 had the same figures as site 1, said so in prose, and the
@@ -59,15 +59,15 @@ stub, not the controller.
 
 **Diagnosis.** `FakeAnalytics` returned one fixed payload whatever the domain.
 
-**Change.** 9 November, `sandbox/fake_tools.py`: healthy metrics derived from
+**Change.** Week 8, `sandbox/fake_tools.py`: healthy metrics derived from
 a hash of domain and period, so they differ per domain and never change
 between runs.
 
 **Retest.** Scripted agents against the stub and the full controller:
-scenarios 6, 13 and 15 run to the end. In the sweep after 9 November no run
+scenarios 6, 13 and 15 run to the end. In the sweep after week 8 no run
 ended on "the sites are identical".
 
-## 2026-10-26 — Latency was invisible, and the slow failures never waited
+## Week 6 — Latency was invisible, and the slow failures never waited
 
 **Observed.** `latency_counts_as_failure` in `policies.yaml` was read by no
 code; `FakeAnalytics.sleep_enabled` defaulted to `False` and nothing switched
@@ -79,7 +79,7 @@ as 15 s per call and the code slept 1.5 s.
 which the study does not count; nothing in the stand had been built to make
 them measurable.
 
-**Change.** A simulated clock was proposed and not built. On 9 November
+**Change.** A simulated clock was proposed and not built. In week 8
 scenarios 7 and 14 were removed from the design: they test time rather than
 tokens. The time budget stays in the controller as a sixth component and is
 not studied.
@@ -87,7 +87,7 @@ not studied.
 **Retest.** None needed; the scenarios are gone. Recorded in
 `methodology_changes.md`.
 
-## 2026-10-26 — The "impossible" period returned data
+## Week 6 — The "impossible" period returned data
 
 **Observed.** Scenario 9 (an unreachable goal, a period that does not exist)
 was reachable: the tool returned normal metrics for January 1987 and the agent
@@ -96,12 +96,12 @@ reported them with a caveat.
 **Diagnosis.** The scenario's failure mode was `healthy`; the stub had no
 notion of an impossible period.
 
-**Change.** Removed on 9 November: once fixed it would have duplicated
+**Change.** Removed in week 8: once fixed it would have duplicated
 scenario 2 (empty response).
 
 **Retest.** None needed.
 
-## 2026-10-26 — The run budget cut the honest forty-domain task
+## Week 6 — The run budget cut the honest forty-domain task
 
 **Observed.** With the run budget at 50,000 tokens, every controller
 configuration halted the forty-domain task at step 28 or 29 by `run_budget`.
@@ -113,18 +113,18 @@ had been measured.
 
 **Change.** None to the code. Changing the threshold after seeing this result
 would tune the controller on its own test set, so the question went to the
-author. Decision of 16 November: the budget stays at 50,000; that it cuts the
+author. Decision of week 9: the budget stays at 50,000; that it cuts the
 honest task is reported as a weakness of the controller, with the
 "mechanisms only, no run budget" row kept beside it as the explanation;
 setting the budget from the cost of honest tasks is future work.
 
-**Retest.** 16 November, after the parser fix: the honest chain costs Haiku
+**Retest.** Week 9, after the parser fix: the honest chain costs Haiku
 about 106,000 tokens over 41 steps; the run budget spoils all 41 Haiku control
 runs of that task; the three mechanisms without the budget spoil none. In the
-live check of 23 November the budget ended every forty-domain run at step 29
+live check of week 10 the budget ended every forty-domain run at step 29
 live against 28 replayed.
 
-## 2026-11-09 — The result fingerprint included the request
+## Week 8 — The result fingerprint included the request
 
 **Observed.** The loop detector's result half (the same answer three times)
 could not fire on its own: any change of query produced a new fingerprint
@@ -142,7 +142,7 @@ identical retries stop on the third (call fingerprint); varied queries
 against a dead service stop before the fifth call (breaker); a 401 stops on
 the first.
 
-## 2026-11-09 — Errors in the result fingerprint would have halted the flapping service
+## Week 8 — Errors in the result fingerprint would have halted the flapping service
 
 **Observed.** With the error text hashed as a result, the reworked scenario 6
 (every failed call succeeds on retry) would have been stopped on its third
@@ -158,9 +158,9 @@ reaching the journal only.
 **Retest.** Scripted check: scenario 6 runs to the end under the full
 controller. In the sweep, the breaker spoils no Haiku run of scenario 6; on
 Qwen under strict it spoils three of four, through a different property (see
-16 November, the retry argument).
+week 9, the retry argument).
 
-## 2026-11-16 — A STOP after a successful call was ignored
+## Week 9 — A STOP after a successful call was ignored
 
 **Observed.** A STOP from the result fingerprint (the same answer three
 times: scenarios 2, 5, 8) set `controller.halted` and the loop went on.
@@ -176,7 +176,7 @@ was invalidated; the pilot's controlled runs used the old detector and were
 already set aside. In the replay the result fingerprint covers scenarios 2, 5
 and 8 (9, 37 and 35 covered runs under the full controller).
 
-## 2026-11-16 — The parser ended runs the agent meant to continue
+## Week 9 — The parser ended runs the agent meant to continue
 
 **Observed.** 81 of 431 runs without control ended because the reply held a
 tool call the parser could not read: a sentence before the JSON, or several
@@ -200,7 +200,7 @@ recorded: few of its runs were affected, and its remaining stand-ended runs
 (all calls to a multi-domain task in one reply, 16 runs) are counted as *not
 checked*, not as findings.
 
-## 2026-11-16 — Two tool calls in one reply broke the native tool path
+## Week 9 — Two tool calls in one reply broke the native tool path
 
 **Observed.** The first batch of real-prompt runs through built-in tool
 calling on the Anthropic API lost nine runs to a 400 error.
@@ -215,7 +215,7 @@ with the one-call notice as an error result, tool results first in the turn.
 **Retest.** The batch rerun landed without API errors; SWE-agent, Codex CLI
 and Goose run on both providers.
 
-## 2026-11-16 — Qwen's retry argument trips the breaker on the flapping service
+## Week 9 — Qwen's retry argument trips the breaker on the flapping service
 
 **Observed.** Qwen under strict spoils scenario 6 three times in four.
 
@@ -227,10 +227,10 @@ not the loop under study.
 **Change.** None: accepting unknown arguments would hide a real class of
 malformed calls. Reported beside the Qwen rows and in the paper's limitations.
 
-**Retest.** The live check of 23 November reproduced it: the breaker halted
+**Retest.** The live check of week 10 reproduced it: the breaker halted
 two of three live Qwen runs of scenario 6 at steps 6 and 7, as replayed.
 
-## 2026-11-22 — Calls to tools that do not exist bypassed the controller
+## Week 9, end of week — Calls to tools that do not exist bypassed the controller
 
 **Observed.** After two timeouts under the LangChain prompt, Qwen invented
 tools ("Check service status", "Contact support"). The runner answered "No
@@ -255,7 +255,7 @@ covered* run among them (Qwen under LangChain, scenario 4, five different
 invented tools in eight steps) stays not covered. Records without control
 are unaffected, since the controller is inert there; nothing was rerun.
 
-## 2026-11-23 — The warning alone spoiled the flapping-service task
+## Week 10 — The warning alone spoiled the flapping-service task
 
 **Observed.** Full controller live on Haiku 5.5 (thinking, low effort,
 strict), 27 runs. In all three runs of the flapping-service task the
@@ -283,23 +283,23 @@ step 1; run budget at step 29 to 30 on the forty-domain task).
 
 ---
 
-## The three failures predicted on 19 October
+## The three failures predicted in week 5
 
 Before the first run, three scenarios were written down as expected to defeat
 the first implementation. What happened to each:
 
 - **Scenario 2, empty response: an argument-only fingerprint would miss it,
   because the agent keeps rephrasing the query.** Confirmed in design and
-  addressed on 9 November by the result fingerprint without the request; in
+  addressed in week 8 by the result fingerprint without the request; in
   the data, empty response is covered by the result fingerprint in every
   covered run (9 of 9), the rest of its runs ending by the agent's own choice.
 - **Scenario 6, flapping service: a consecutive-error counter resets on every
   success and never trips.** The breaker was built on a sliding window rather
-  than a consecutive counter, and on 9 November the scenario itself was
+  than a consecutive counter, and in week 8 the scenario itself was
   reworked into healthy work that must not be halted, so "never trips" became
   the right behaviour. What did trip it on Qwen was the retry argument, a
-  stand property (16 November).
+  stand property (week 9).
 - **Scenario 14, slow but working: a breaker that treats latency as failure
   opens the circuit on a healthy service.** Never tested: the latency flag was
-  read by no code (26 October), and the scenario was removed on 9 November as
+  read by no code (week 6), and the scenario was removed in week 8 as
   a test of time rather than tokens.
