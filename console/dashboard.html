@@ -1,5 +1,5 @@
-<title>Agent Fuel Tracker</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Fuel Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -167,21 +167,64 @@ footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
   .runmeta { text-align: left; }
 }
 @media (max-width: 520px) { h1 { font-size: 23px; } }
-</style>
 
+/* --- modes, the Run panel and the live view --- */
+.modes { display: inline-flex; gap: 0; margin-top: 10px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.mode { font: 600 12.5px var(--body); padding: 6px 16px; border: 0; background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.mode.on { background: var(--ink); color: var(--surface); }
+body[data-mode="data"] #runpanel, body[data-mode="data"] #livepanel { display: none; }
+.launch .rows { display: grid; gap: 12px; }
+.launch .row { display: grid; grid-template-columns: 120px 1fr; gap: 6px 14px; align-items: start; }
+.launch .row > .k { padding-top: 6px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.opt { display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px var(--body); padding: 5px 9px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.opt input { margin: 0; accent-color: var(--accent); }
+.opt:has(input:checked) { color: var(--ink); border-color: var(--ink-3); background: var(--surface-2); }
+.opt.num { font-family: var(--data); min-width: 44px; justify-content: center; }
+.preset { font: 500 12.5px var(--body); text-align: left; padding: 8px 12px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink-2); cursor: pointer; display: grid; gap: 2px; }
+.preset:hover { border-color: var(--ink-3); color: var(--ink); }
+.preset.on { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+.preset small { color: var(--ink-3); font-size: 11px; }
+.presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.go { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { font: 600 14px var(--body); padding: 9px 22px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; }
+.btn.start { background: var(--guard); color: var(--surface); }
+.btn.stop { background: transparent; color: var(--burn); border-color: var(--burn); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.count { font-family: var(--data); font-size: 13px; color: var(--ink-2); }
+.count b { color: var(--ink); }
+.msg-err { color: var(--burn); font-size: 13px; }
+.cost-in { width: 72px; font: 500 13px var(--data); padding: 4px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink); }
+.console { font: 12px/1.55 var(--data); background: var(--surface-2); border: 1px solid var(--line-soft); padding: 10px 12px; max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); margin: 0; }
+.cmd { font: 12px/1.6 var(--data); background: var(--ink); color: #E7ECF3; padding: 10px 60px 10px 12px; border-radius: 4px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; position: relative; }
+.cmd .copy { position: absolute; top: 6px; right: 6px; font: 600 11px var(--body); padding: 3px 8px; border-radius: 3px; border: 1px solid #93A0B1; background: transparent; color: #E7ECF3; cursor: pointer; }
+.health { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-3); }
+.ok-dot::before, .bad-dot::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.ok-dot::before { background: var(--guard); } .bad-dot::before { background: var(--burn); }
+.livehead { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 16px; }
+.livehead div { display: grid; gap: 2px; } .livehead b { font-weight: 600; font-size: 14.5px; }
+.steps tr.live-new td { animation: flash 1.2s ease-out; }
+@keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
+.verdict-stop td { background: var(--guard-soft); } .verdict-warn td { background: var(--warn-soft); }
+.badge { font: 600 10px var(--body); letter-spacing: .05em; text-transform: uppercase; padding: 1px 6px; border-radius: 2px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; vertical-align: middle; }
+.cell.console-run { outline: 2px dashed var(--accent); outline-offset: 1px; }
+@media (max-width: 600px) { .launch .row { grid-template-columns: 1fr; } }
+</style>
+</head><body data-mode="data">
 <div class="wrap">
 
 <header>
   <div>
     <span class="k">CSIT305 · research</span>
-    <h1>Agent Fuel Tracker</h1>
-    <p class="cap">How many tokens an agent burns when its tool breaks, and how many the controller saves. 9 scenarios × 7 arms × 3 repeats.</p>
+    <h1>Agent Fuel Console</h1>
+    <p class="cap">How many tokens an agent burns when its tool breaks, and how many the controller saves. Data: the frozen database and the controls computed over it. Run: start a run, see the exact command, watch it step by step.</p>
+    <div class="modes" role="tablist" aria-label="Mode"><button type="button" class="mode on" id="mode-data" role="tab">Data</button><button type="button" class="mode" id="mode-run" role="tab">Run</button></div>
   </div>
   <div class="runmeta" id="runmeta">
     <span id="conds" class="models" role="radiogroup" aria-label="Condition"></span><br>
     <span id="temps" class="models" role="radiogroup" aria-label="Qwen temperature"></span><br>
     <span id="models" class="models" role="group" aria-label="Models"></span><br>
-    runs <b id="m-runs">0</b> of <span id="m-plan">189</span><br>
+    runs in view <b id="m-runs">0</b><br>
     spent <b id="m-cost">$0</b>
   </div>
 </header>
@@ -191,6 +234,65 @@ footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
   <div class="doing" id="now-doing">Loading…</div>
   <div class="meta" id="now-meta"></div>
 </div>
+
+<!-- ====== RUN ====== -->
+<section class="panel launch" id="runpanel" style="margin-top:18px">
+  <div class="panel-head">
+    <div><h3>Run</h3><p class="cap">Pick a run, read the command the console will execute, press Start. The run appears below step by step as it happens, and lands in the tables when it finishes. Runs started here are kept apart from the frozen database and marked.</p></div>
+    <div class="health" id="health"></div>
+  </div>
+  <div class="rows">
+    <div class="row"><span class="k">Presets</span><div class="presets" id="l-presets"></div></div>
+    <div id="custom" hidden>
+    <div class="rows">
+    <div class="row"><span class="k">Models</span><div class="opts" id="l-configs">
+      <label class="opt"><input type="checkbox" value="qwen" checked>Qwen 2.5 7B · local, free</label>
+      <label class="opt"><input type="checkbox" value="haiku-think-low">Haiku 5.5 · thinking · low effort</label>
+      <label class="opt"><input type="checkbox" value="haiku-think-high">Haiku 5.5 · thinking · high effort</label>
+      <label class="opt"><input type="checkbox" value="haiku-nothink-low">Haiku 5.5 · no thinking · low effort</label>
+      <label class="opt"><input type="checkbox" value="haiku-nothink-high">Haiku 5.5 · no thinking · high effort</label>
+    </div></div>
+    <div class="row"><span class="k">Prompt</span><div class="opts" id="l-cond">
+      <label class="opt"><input type="radio" name="l-cond" value="lenient">Lenient · may give up</label>
+      <label class="opt"><input type="radio" name="l-cond" value="base">Base · nothing said</label>
+      <label class="opt"><input type="radio" name="l-cond" value="strict" checked>Strict · must not finish without data</label>
+      <label class="opt"><input type="checkbox" id="l-hint">+ hint in error texts</label>
+      <select id="l-real" aria-label="Framework prompt instead of ours"><option value="">our prompt (level above)</option></select>
+    </div></div>
+    <div class="row"><span class="k">Temperature</span><div class="opts" id="l-temp" style="align-items:center">
+      <label class="opt num"><input type="radio" name="l-temp" value="0" checked>0</label>
+      <label class="opt num"><input type="radio" name="l-temp" value="0.7">0.7</label>
+      <label class="opt num"><input type="radio" name="l-temp" value="1">1</label>
+      <span class="cap">Qwen only; 0 is deterministic. Haiku cannot be set and runs at its default.</span>
+    </div></div>
+    <div class="row"><span class="k">Scenarios</span><div class="opts" id="l-scen"></div></div>
+    <div class="row"><span class="k">Controls</span><div class="opts" id="l-arms"></div></div>
+    <div class="row"><span class="k">Repeats</span><div class="opts" id="l-reps"></div></div>
+    <div class="row"><span class="k">Spend cap</span><div class="opts" style="align-items:center">
+      <input class="cost-in" type="number" id="l-cost" min="0.01" max="10" step="0.01" value="1.00" aria-label="Spend cap in dollars">
+      <span class="cap">dollars per Haiku model for this launch; the launch stops itself when it gets there</span>
+    </div></div>
+    </div>
+    </div>
+    <div class="row"><span class="k">Command</span><div><pre class="cmd" id="l-cmd">pick a run</pre><p class="cap">The exact command the console runs from the project root. Copy it to run the same thing from a terminal.</p></div></div>
+    <div class="go">
+      <button type="button" class="btn start" id="l-start">Start</button>
+      <button type="button" class="btn stop" id="l-stop" disabled>Stop</button>
+      <span class="count" id="l-count"></span>
+      <span class="msg-err" id="l-err"></span>
+    </div>
+    <details><summary class="k" style="font-family:var(--body);font-size:11px">Launch log</summary><pre class="console" id="l-log">Nothing yet.</pre></details>
+  </div>
+</section>
+
+<section class="panel" id="livepanel" style="margin-top:18px" hidden>
+  <div><h3 id="lv-title">Run in progress</h3><p class="cap" id="lv-cap"></p></div>
+  <div class="livehead" id="lv-head"></div>
+  <div class="tablewrap"><table class="steps" id="lv-steps"></table></div>
+  <div><h3>Controller decisions</h3><p class="cap">Every check so far with its verdict. A warning is put in front of the agent one step before a stop.</p></div>
+  <div class="log" id="lv-log"></div>
+</section>
+
 
 <!-- ====== RESULTS ====== -->
 <div class="section-head">
@@ -202,7 +304,7 @@ footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
   <div class="stat"><span class="k">Burned without control</span><span class="v" id="s-burn">—</span><span class="n" id="s-burn-n">mean tokens per run, arm A, failed services</span></div>
   <div class="stat"><span class="k">Saved by the controller</span><span class="v" id="s-saved">—</span><span class="n" id="s-saved-n">arm G against A</span></div>
   <div class="stat"><span class="k">False interruptions</span><span class="v" id="s-false">—</span><span class="n" id="s-false-n">arm G, healthy tasks</span></div>
-  <div class="stat"><span class="k">Runs done</span><span class="v" id="s-done">0</span><span class="n" id="s-done-n">of 189 planned</span></div>
+  <div class="stat"><span class="k">Runs in view</span><span class="v" id="s-done">0</span><span class="n" id="s-done-n">records under the ticked filters</span></div>
 </div>
 
 <div class="grid2" style="margin-top:18px">
@@ -261,14 +363,14 @@ footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
         <div><b>Agent loop</b>The model decides, the program calls the tool, the model reads the result.<code>agent/runner.py</code></div>
         <div><b>Model provider</b>Sends the conversation to the model and gets back the reply and token counts.<code>call_model, parse_action</code></div>
         <div><b>Controller</b>Gives a verdict on every step: allow, warn or stop. Arms A–G switch mechanisms on one at a time.<code>control/agent_fuel.py</code></div>
-        <div><b>Result files</b>One row per run and one row per controller decision.<code>results/runs.csv, decisions.csv</code></div>
+        <div><b>Result files</b>The frozen database and the files computed from it.<code>console/data/runs.jsonl, results/</code></div>
       </div>
     </div>
   </details>
 </div>
 
 <footer>
-  <span>A no control · B account limit · C iteration cap · D run budget · E + loop detector · F + circuit breaker · G Agent Fuel (all)</span>
+  <span>Control codes: A no control · B account limit · C iteration cap · D run budget · E + loop detector · F + circuit breaker · G Agent Fuel (all). The paper names them in words.</span>
   <span>All external tools are stubs with controllable failure modes. No live service was called.</span>
 </footer>
 </div>
@@ -503,10 +605,10 @@ function renderStats() {
     put("s-false", rows.map(r => ({id: r.id, v: r.pa.G.falseRate, text: Math.round(r.pa.G.falseRate) + "%"})),
       v => v > 0 ? "bad" : "good", "appears after healthy-task runs (group C)", "arm G, healthy tasks");
   }
-  const total = rows.reduce((s, r) => s + r.rs.length, 0), plan = 189 * Math.max(ms.length, 1);
+  const total = rows.reduce((s, r) => s + r.rs.length, 0);
   $("s-done").className = "v"; $("s-done").textContent = String(total);
-  $("s-done-n").textContent = `of ${plan} planned (189 per series: 9 scenarios × 7 arms × 3 repeats)`;
-  $("m-runs").textContent = total; $("m-plan").textContent = plan;
+  $("s-done-n").textContent = "records under the ticked filters; dashed cells are computed over the uncontrolled run";
+  $("m-runs").textContent = total;
   $("m-cost").textContent = "$" + rows.reduce((s, r) => s + r.rs.reduce((a, x) => a + (x.cost_usd || 0), 0), 0).toFixed(2);
 }
 
@@ -602,8 +704,9 @@ function renderTrade() {
 
 // --- matrix ----------------------------------------------------------------
 function cellButton(here, title, arm, short) {
-  const rep = here[here.length - 1], b = el("button", "cell c-" + outcome(rep) + (rep.computed ? " computed" : "")); b.type = "button"; b.dataset.has = "1";
-  if (rep.computed) b.title = "Computed by replaying the controller over the arm A run; not a live run.";
+  const rep = here[here.length - 1], b = el("button", "cell c-" + outcome(rep) + (rep.computed ? " computed" : "") + (rep.console ? " console-run" : "")); b.type = "button"; b.dataset.has = "1";
+  if (rep.computed) b.title = "Computed by replaying the controller over the uncontrolled run; not a live run.";
+  if (rep.console) b.title = "Started from this console; kept apart from the frozen database.";
   if (short) b.append(el("span", "mk", short));
   const val = el("span"); val.textContent = fmtNum(median(here.map(r => r.tokens)));
   val.append(el("small", null, `${rep.steps} steps${here.length > 1 ? " · ×" + here.length : ""}`)); b.append(val);
@@ -662,7 +765,8 @@ function renderMatrix() {
 // --- run detail ------------------------------------------------------------
 function renderDetail(r) {
   $("detail").hidden = false;
-  $("d-title").textContent = `${TITLE_OF[r.scenario_id] || r.scenario_id} · arm ${r.arm} · repeat ${r.repeat || 1}`;
+  $("d-title").replaceChildren(document.createTextNode(`${TITLE_OF[r.scenario_id] || r.scenario_id} · control ${r.arm} · repeat ${r.repeat || 1}`));
+  if (r.console) $("d-title").append(el("span", "badge", "console run"));
   $("d-cap").textContent = `${baseInfo(r.model).short} (${r.model}) · ${(CONDITIONS.find(c => c.id === condOf(r)) || {short: condOf(r)}).short} · temperature ${tempOf(r)}${r.ts ? " · " + fmtTime(r.ts) : ""}`;
   const kv = $("d-kv"); kv.replaceChildren();
   [["Steps", r.steps], ["Tokens", fmtNum(r.tokens)], ["Cost", r.cost_usd ? "$" + r.cost_usd.toFixed(4) : "$0 (local)"],
@@ -723,11 +827,194 @@ function setCurveScenarios() {
 $("curve-sc").addEventListener("change", renderCurve);
 refresh();
 
-(async () => {
-  const db = await window.claude?.use?.("db");
-  if (!db) { $("now-doing").textContent = "Data is not available in this view. Open the page on claude.ai while signed in."; return; }
-  const fail = () => { $("now-meta").textContent = "Lost the connection to the data. Reload the page."; };
-  db.doc("state/now").onSnapshot(s => renderNow(s.exists ? s.data() : null), fail);
-  db.collection("runs").onSnapshot(s => { setRuns(s.docs.map(d => ({id: d.id, ...d.data()}))); refresh(); }, fail);
-})();
+// --- the Run view ------------------------------------------------------------
+// Four runs that tell the paper's story on the local model, deterministically
+// (Qwen at temperature 0 with a fixed seed): the controller stops a runaway,
+// stops a terminal error at once, leaves a flapping service alone, and cuts
+// an honest long task with its own budget. G runs first so the stop shows
+// while the uncontrolled run is still going.
+const PRESETS = [
+  {id: "timeout", name: "Timeout: runaway against a stop", note: "scenario 4 · Qwen · strict · controls G then A. Without control: 60 steps, ~104k tokens. Agent Fuel: 4 steps, loop detector.",
+   p: {configs: ["qwen"], scenarios: [4], arms: ["G", "A"], repeats: 1, condition: "strict", temperature: 0, max_cost: 1}},
+  {id: "auth", name: "Authentication error: stopped at step 1", note: "scenario 3 · Qwen · strict · G then A. Without control: 60 steps, ~95k tokens. Agent Fuel: the error classifier ends it on the first 401.",
+   p: {configs: ["qwen"], scenarios: [3], arms: ["G", "A"], repeats: 1, condition: "strict", temperature: 0, max_cost: 1}},
+  {id: "flapping", name: "Flapping service: left alone", note: "scenario 6 · Qwen · strict · G then A. A service that fails and recovers; the controller must not stop it. Both finish the ten domains.",
+   p: {configs: ["qwen"], scenarios: [6], arms: ["G", "A"], repeats: 1, condition: "strict", temperature: 0, max_cost: 1}},
+  {id: "forty", name: "Forty domains: the budget's weakness", note: "scenario 13 · Qwen · strict · G then A. Honest work of 41 steps, ~97k tokens; the 50,000-token run budget cuts it at step 29.",
+   p: {configs: ["qwen"], scenarios: [13], arms: ["G", "A"], repeats: 1, condition: "strict", temperature: 0, max_cost: 1}},
+  {id: "custom", name: "Custom…", note: "pick models, prompt, scenarios, controls and repeats yourself", p: null},
+];
+let preset = null, realPrompts = [];
+function buildLaunch() {
+  const sc = $("l-scen"), ar = $("l-arms"), rp = $("l-reps"), ps = $("l-presets");
+  SCENARIOS.forEach(([id, , title]) => { const l = el("label", "opt num"), c = el("input"); c.type = "checkbox"; c.value = id; l.title = title; l.append(c, document.createTextNode(String(id))); sc.append(l); });
+  ARMS.forEach(([a, n]) => { const l = el("label", "opt"), c = el("input"); c.type = "checkbox"; c.value = a; l.append(c, document.createTextNode(a + " " + n)); ar.append(l); });
+  [1, 2, 3].forEach(n => { const l = el("label", "opt num"), c = el("input"); c.type = "radio"; c.name = "reps"; c.value = n; if (n === 1) c.checked = true; l.append(c, document.createTextNode(String(n))); rp.append(l); });
+  PRESETS.forEach(pr => { const b = el("button", "preset"); b.type = "button"; b.dataset.preset = pr.id; b.append(el("span", null, pr.name), el("small", null, pr.note)); b.onclick = () => choosePreset(pr.id); ps.append(b); });
+  document.querySelectorAll("#custom input, #custom select").forEach(c => c.addEventListener("change", updateCommand));
+  $("l-start").onclick = start; $("l-stop").onclick = stopRun;
+  choosePreset("timeout");
+}
+function choosePreset(id) {
+  preset = id;
+  document.querySelectorAll(".preset").forEach(b => b.classList.toggle("on", b.dataset.preset === id));
+  const pr = PRESETS.find(x => x.id === id);
+  $("custom").hidden = id !== "custom";
+  if (pr.p) {
+    document.querySelectorAll("#l-configs input").forEach(c => c.checked = pr.p.configs.includes(c.value));
+    document.querySelectorAll("#l-cond input[type=radio]").forEach(c => c.checked = c.value === pr.p.condition);
+    $("l-hint").checked = false; $("l-real").value = "";
+    document.querySelectorAll("#l-temp input").forEach(c => c.checked = Number(c.value) === pr.p.temperature);
+    $("l-scen").querySelectorAll("input").forEach(c => c.checked = pr.p.scenarios.includes(Number(c.value)));
+    $("l-arms").querySelectorAll("input").forEach(c => c.checked = pr.p.arms.includes(c.value));
+    $("l-reps").querySelectorAll("input").forEach(c => c.checked = Number(c.value) === pr.p.repeats);
+    $("l-cost").value = pr.p.max_cost.toFixed(2);
+  }
+  updateCommand();
+}
+function launchParams() {
+  const vals = sel => [...document.querySelectorAll(sel + " input:checked")].map(c => c.value);
+  const pr = PRESETS.find(x => x.id === preset);
+  const arms = pr && pr.p ? pr.p.arms : vals("#l-arms");  // presets fix the order: G before A
+  return {configs: vals("#l-configs"), scenarios: vals("#l-scen").map(Number), arms,
+    repeats: Number(vals("#l-reps")[0] || 1), max_cost: Number($("l-cost").value || 1),
+    condition: vals("#l-cond")[0] || "base", temperature: Number(vals("#l-temp")[0] || 0),
+    real_prompt: $("l-real").value || "", error_hint: $("l-hint").checked};
+}
+const condLabel = p => (p.real_prompt ? p.real_prompt.replace(/\.txt$/, "") : p.condition) + (p.error_hint ? "+hint" : "");
+let cmdTimer = null;
+function updateCommand() {
+  clearTimeout(cmdTimer);
+  cmdTimer = setTimeout(async () => {
+    const p = launchParams(), n = p.scenarios.length * p.arms.length * p.repeats, total = n * p.configs.length;
+    $("l-count").replaceChildren();
+    if (!total) { $("l-count").textContent = "pick a model, scenarios and controls"; $("l-cmd").textContent = "pick a run"; return; }
+    $("l-count").append(document.createTextNode("will run "), el("b", null, String(total)), document.createTextNode(` run${total === 1 ? "" : "s"} · ${condLabel(p)} · t=${p.temperature}`));
+    try {
+      const r = await post("/api/command", p);
+      $("l-cmd").replaceChildren(document.createTextNode(r.commands.join("\n")));
+      const c = el("button", "copy", "copy"); c.type = "button"; c.onclick = () => navigator.clipboard?.writeText(r.commands.join("\n")); $("l-cmd").append(c);
+      $("l-err").textContent = "";
+    } catch (e) { $("l-cmd").textContent = "—"; $("l-err").textContent = e.message; }
+  }, 150);
+}
+async function post(path, body) {
+  const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json", "X-Agent-Fuel": "1"}, body: JSON.stringify(body || {})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "The server returned error " + r.status);
+  return j;
+}
+const CONFIG_ID = {qwen: "qwen2.5:7b", "haiku-think-low": "claude-haiku-5-5+thinking+low", "haiku-think-high": "claude-haiku-5-5+thinking+high",
+                   "haiku-nothink-low": "claude-haiku-5-5+no-thinking+low", "haiku-nothink-high": "claude-haiku-5-5+no-thinking+high"};
+async function start() {
+  $("l-err").textContent = "";
+  const p = launchParams();
+  try {
+    await post("/api/start", p);
+    // the tables follow the launch: its prompt, its temperature, its models
+    conds = new Set([condLabel(p)]);
+    if (p.configs.includes("qwen") && TEMPS.includes(p.temperature)) temps = new Set([p.temperature]);
+    chosen = new Set(p.configs.map(c => CONFIG_ID[c]));
+    $("livepanel").hidden = false; $("lv-title").textContent = "Starting…"; $("lv-cap").textContent = "";
+    $("lv-head").replaceChildren(); $("lv-steps").replaceChildren(); $("lv-log").replaceChildren();
+    liveSeen = "";
+    applyFilter(); refresh(); poll();
+  } catch (e) { $("l-err").textContent = e.message; }
+}
+async function stopRun() { try { await post("/api/stop"); poll(); } catch (e) { $("l-err").textContent = e.message; } }
+
+// --- the live view: the run in progress, step by step ----------------------
+let liveSeen = "";
+function renderLive(lv) {
+  if (!lv || !lv.id) return;
+  $("livepanel").hidden = false;
+  const done = !!lv.done, o = lv.outcome || {};
+  $("lv-title").replaceChildren(document.createTextNode(`${done ? "Finished" : "Running"}: ${TITLE_OF[lv.scenario_id] || lv.scenario_id} · control ${lv.arm} · ${(ARMS.find(a => a[0] === lv.arm) || [])[1] || ""}`));
+  if (!done) $("lv-title").prepend(el("span", "pulse"));
+  $("lv-cap").textContent = `${baseInfo(lv.model).short} · ${lv.condition} · temperature ${lv.temperature} · run ${lv.index} of ${lv.total} · ${lv.id}`;
+  const head = $("lv-head"); head.replaceChildren();
+  const ended = !done ? "in progress" : o.error ? "error: " + o.error : o.halted ? "halted by the controller · " + (MECH[o.halt_mechanism] || o.halt_mechanism)
+    : (lv.steps || []).length >= 60 ? "60-step ceiling" : o.task_completed ? "the agent finished" : "the agent stopped";
+  [["Step", String(lv.step || 0)], ["Tokens so far", fmtNum(lv.tokens || 0)], ["Ended", ended],
+   ["Warnings", String((lv.decisions || []).filter(d => d.decision === "warn").length)]]
+    .forEach(([k, v]) => { const d = el("div"); d.append(el("span", "k", k), el("b", null, v)); head.append(d); });
+  const t = $("lv-steps"); t.replaceChildren();
+  const h = el("tr"); ["Step", "Agent replied", "Tool returned", "Controller", "Tokens in / out"].forEach(x => h.append(el("th", null, x)));
+  const th = el("thead"); th.append(h); t.append(th);
+  const tb = el("tbody"), ds = lv.decisions || [];
+  (lv.steps || []).forEach((s, i, arr) => {
+    const mine = ds.filter(d => d.step === s.step && d.decision !== "allow");
+    const v = mine.find(d => d.decision === "stop") || mine.find(d => d.decision === "warn");
+    const tr = el("tr", (v ? "verdict-" + v.decision : "") + (i === arr.length - 1 && !done ? " live-new" : ""));
+    tr.append(el("td", "n", String(s.step).padStart(2, "0")));
+    const a = el("td"); a.append(el("code", null, s.reply || "")); const res = el("td"); res.append(el("code", null, s.tool_result || (i === arr.length - 1 ? "…" : "—")));
+    const c = el("td"); c.append(v ? el("span", "pill " + (v.decision === "stop" ? "stop" : "flag"), v.decision + (v.mechanism ? " · " + (MECH[v.mechanism] || v.mechanism) : "")) : el("span", "pill pass", "allow"));
+    tr.append(a, res, c, el("td", "n", `${fmtNum(s.in)} / ${fmtNum(s.out)}`)); tb.append(tr);
+  });
+  if (!(lv.steps || []).length) { const tr = el("tr"), td = el("td", "empty", "Waiting for the first model reply…"); td.colSpan = 5; tr.append(td); tb.append(tr); }
+  t.append(tb);
+  const lg = $("lv-log"); lg.replaceChildren();
+  const EVT = {before_step: "step start", before_tool: "before tool call", after_tool: "after tool call"};
+  ds.forEach(d => {
+    const row = el("div", "lrow"), msg = el("span", "msg");
+    msg.append(document.createTextNode((EVT[d.event] || d.event) + (d.tool ? " · " : "")));
+    if (d.tool) msg.append(el("b", null, d.tool));
+    if (d.failed) msg.append(document.createTextNode(" → error"));
+    if (d.reason) msg.append(document.createTextNode(" · " + d.reason));
+    const cls = d.decision === "stop" ? "stop" : d.decision === "warn" ? "flag" : "pass";
+    row.append(el("span", "step", String(d.step).padStart(2, "0")), msg, el("span", "tok", fmtNum(d.tokens_used)), el("span", "pill " + cls, d.decision + (d.mechanism ? " · " + (MECH[d.mechanism] || d.mechanism) : "")));
+    lg.append(row);
+  });
+  if (!ds.length) lg.append(el("p", "empty", "No decisions yet."));
+  if (done && lv.id) selectedId = lv.id;
+}
+async function pollLive() {
+  let lv;
+  try { lv = await (await fetch("/api/live", {cache: "no-store"})).json(); } catch { return; }
+  const key = JSON.stringify([lv.id, lv.step, lv.done, (lv.decisions || []).length, (lv.steps || []).map(s => s.tool_result ? 1 : 0).join("")]);
+  if (key !== liveSeen) { liveSeen = key; renderLive(lv); }
+}
+
+// --- polling the server ----------------------------------------------------
+let runsVersion = "";
+async function loadRuns() {
+  try {
+    const r = await (await fetch("/api/runs", {cache: "no-store"})).json();
+    runsVersion = r.runs_version;
+    setRuns(r.runs.filter(x => !x.error)); refresh();
+  } catch {}
+}
+async function poll() {
+  let s;
+  try { s = await (await fetch("/api/state", {cache: "no-store"})).json(); }
+  catch { $("now-doing").textContent = "No connection to the local server. Start it again."; $("now-meta").textContent = ""; return; }
+  renderNow(s.now);
+  if (s.now && s.now.total) $("now-meta").textContent = `${s.now.config} · done ${s.now.done} of ${s.now.total} · spent $${(s.now.spent_usd || 0).toFixed(4)}` + (s.queued.length ? ` · next: ${s.queued.join(", ")}` : "");
+  $("l-start").disabled = s.running; $("l-stop").disabled = !s.running;
+  const h = $("health"); h.replaceChildren(
+    el("span", s.has_key ? "ok-dot" : "bad-dot", s.has_key ? "Claude API key found" : "no Claude API key"),
+    el("span", s.ollama ? "ok-dot" : "bad-dot", s.ollama ? "Ollama running" : "Ollama off, starts by itself on launch"));
+  const lg = $("l-log"), atEnd = lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 4;
+  lg.textContent = s.log.length ? s.log.join("\n") : "Nothing yet."; if (atEnd) lg.scrollTop = lg.scrollHeight;
+  if (realPrompts.join() !== (s.real_prompts || []).join()) {
+    realPrompts = s.real_prompts || []; const sel = $("l-real"), cur = sel.value;
+    const first = el("option", null, "our prompt (level above)"); first.value = ""; sel.replaceChildren(first);
+    realPrompts.forEach(f => { const o = el("option", null, f.replace(/\.txt$/, "").replace(/^P(\d+)_/, "P$1 ").replace(/_/g, " ")); o.value = f; sel.append(o); });
+    sel.value = cur;
+  }
+  if (s.runs_version !== runsVersion) await loadRuns();
+  if (s.running || document.body.dataset.mode === "run") pollLive();
+}
+// --- modes -----------------------------------------------------------------
+function setMode(m) {
+  document.body.dataset.mode = m;
+  $("mode-data").classList.toggle("on", m === "data"); $("mode-run").classList.toggle("on", m === "run");
+  try { const q = new URLSearchParams(location.hash.slice(1)); q.set("mode", m); history.replaceState(null, "", "#" + q.toString()); } catch {}
+  if (m === "run") pollLive();
+}
+$("mode-data").onclick = () => setMode("data"); $("mode-run").onclick = () => setMode("run");
+let startMode = "data"; try { startMode = new URLSearchParams(location.hash.slice(1)).get("mode") === "run" ? "run" : "data"; } catch {}
+setMode(startMode);
+buildLaunch(); poll(); setInterval(poll, 2000); setInterval(() => { if (document.body.dataset.mode === "run") pollLive(); }, 1000);
 </script>
+</body></html>
