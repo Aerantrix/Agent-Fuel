@@ -101,8 +101,8 @@ the reason AutoGPT was left out.
 
 ## 3. Models
 
-**Was.** claude-haiku-5-5 at temperature 0, three repeats (HANDOVER,
-DEVELOPER); a second model of another family on 2–3 scenarios. The design
+**Was.** claude-haiku-5-5 at temperature 0, three repeats (the
+developer brief, DEVELOPER.md); a second model of another family on 2–3 scenarios. The design
 document also mentions "a stronger model on the overspend scenarios".
 
 **Is.** Haiku 5.5 without a temperature parameter, four variants: thinking on
@@ -130,7 +130,7 @@ iteration cap of 15 steps, D–G the ladder from the run budget to the full
 Agent Fuel): 315 runs, or 495 with the cap swept over 10–40. Overspend =
 tokens from the failure step to the end of the run; false interruption = the
 share of control-group runs halted; the run budget carried a $2 cost ceiling
-(HANDOVER, policies.yaml).
+(the developer brief, policies.yaml).
 
 **Is.** Only A is run live (431 records by week 9). B and C are cuts of the
 token curve; D–G are the controller replayed over the recorded calls.

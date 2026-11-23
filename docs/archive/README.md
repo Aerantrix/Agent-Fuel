@@ -7,3 +7,10 @@ planned before anything ran; the design that was run is in the main README,
 | File | What it was |
 | --- | --- |
 | `failure-scenarios-first-design-2026-10-19.docx` | The fifteen failure scenarios in three groups, as proposed in week 5. Reduced to nine in week 8: two tested time rather than tokens, one duplicated another, one was not a tool failure, two repeated the forty-domain task. |
+
+Not kept: `HANDOVER.md`, a working note in Russian from week 6 for continuing
+the work between sessions, removed in week 10; what it recorded is in
+`docs/methodology_changes.md`, `docs/timeline.md` and `docs/work_log.md`.
+The dashboard mock-up it linked to, made in week 5 before the first task went
+to the developer, with invented data:
+https://claude.ai/artifact/Pgv73Eu6iZvwAUitidp8ne
