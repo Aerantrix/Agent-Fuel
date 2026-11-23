@@ -1,4 +1,7 @@
-"""Experiment runner: 9 scenarios x 7 configurations x 3 repeats = 189 runs.
+"""Experiment runner of the first design (October 2026): 9 scenarios x 7
+configurations x 3 repeats = 189 runs, all live. Kept for the record; the
+runs behind the paper were made through console/batch.py and console/worker.py
+(the uncontrolled configuration live, the controls computed by analyse.py).
 
 Writes two CSVs:
     results/runs.csv       one row per run
