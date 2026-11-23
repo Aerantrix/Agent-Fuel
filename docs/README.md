@@ -3,7 +3,8 @@
 | File or folder | What it is |
 | --- | --- |
 | `work_log.md` | The engineering log, by date, from the first end-to-end run on 26 October 2026: what was done, found and decided, with the numbers. The record of development and testing. |
-| `iteration_log.md` | Failures, revisions and retests, one entry per defect: what was observed, the diagnosis, the change, the retest. |
+| `iteration_log.md` | Failures, revisions and retests, one entry per defect: what was observed, the diagnosis, the change, the retest. Fourteen entries, 26 October to 23 November. |
+| `methodology_changes.md` | How the study design changed from the brief to what was run: scenarios, conditions, models, configurations, stand, with the reason and date of each change, and a timeline. |
 | `architecture-diagram.png` | The architecture of the stand: agent loop, controller, model API, fault harness, scenario suite, journal and analysis. |
 | `real-prompts/` | The default prompts of other agent frameworks, copied word for word with a card each, and the documented responses of the Ahrefs API. Cited by the paper as [24]. |
 | `archive/` | Documents of the first design, before anything ran. Kept for the record. |
