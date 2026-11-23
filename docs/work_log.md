@@ -2,11 +2,11 @@
 
 What was done, found and decided while bringing the instrument up for the first
 time. Newest entries last. `iteration_log.md` stays the record of scenarios
-that defeat the controller; this file is the record of the work around it.
+that defeat the controller; this file is the record of the work around it. Headings carry the project week, counted from Monday 21 September 2026 as week 1; the dates inside the entries are as written at the time.
 
 ---
 
-## 2026-10-26
+## Week 6 (26 October 2026)
 
 ### Review of the brief before any code
 
@@ -223,7 +223,7 @@ Checked on this Mac with a free Qwen run through the console. The Windows
 steps and the PowerShell key command are untested until a team member on
 Windows runs them.
 
-## 9 November 2026: the stand rebuilt for the revised study design
+## Week 8 (9 November 2026): the stand rebuilt for the revised study design
 
 Decided with the author after a walk through the design, scenario by scenario.
 Everything below is on branch `stand-v2`, uncommitted.
@@ -310,7 +310,7 @@ had the retry hints, and arms E to G ran the old detector.
 - README, DEVELOPER, HANDOVER and GETTING_STARTED still describe fifteen
   scenarios.
 
-## 16 November 2026: the analysis rewritten for the revised design
+## Week 9 (16 November 2026): the analysis rewritten for the revised design
 
 ### What the sweep holds
 
@@ -474,7 +474,7 @@ of 9 scenarios per model and prompt; the gaps are single API or Ollama
 timeouts). All Haiku variants rerun with the fixed parser; no run ended by
 the stand. Pull requests: #1 real prompts, #2 stand v2.
 
-## 22 November 2026: the controller goes live, repeats, and unknown tools
+## Week 9, end (22 November 2026): the controller goes live, repeats, and unknown tools
 
 Pull requests #1 (real prompts), #2 (stand v2) and #3 (the documents on nine
 scenarios) are merged; the main folder is on `master`.
@@ -559,7 +559,7 @@ and repeated the identical call five times, a property of the free-text
 protocol rather than honest work. Records merged into `runs.jsonl` (714
 records), `summary.md` regenerated.
 
-## 23 November 2026: the controller live
+## Week 10 (23 November 2026): the controller live
 
 Configuration G run live by the author on Haiku 5.5, thinking, low effort,
 strict: nine scenarios, three repeats, 27 runs, $0.03 (`console/batch.py

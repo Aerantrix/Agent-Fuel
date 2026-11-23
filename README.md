@@ -125,7 +125,7 @@ gives the minimum spend the saving is measured against and stays outside the
 false-interruption count.
 
 The numbers are the original ones; scenarios 7, 9, 10, 11, 12 and 14 of the
-first design were removed on 9 November. Wrong data from the service is not a
+first design were removed in week 8 of the project. Wrong data from the service is not a
 tool failure, and the remaining control scenarios duplicated each other. The
 reasoning is in `docs/work_log.md`.
 
