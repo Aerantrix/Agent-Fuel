@@ -88,15 +88,18 @@ has one row per model setting, prompt condition, scenario and control
 configuration, with the record count, the repeats, the temperature and the
 dates of the first and last run.
 
-## The seven arms
+## The controls
 
-A is what the models do on their own. B and C are the approaches being
-compared against. D through G take the controller apart one mechanism at a
-time, so the difference between two adjacent arms is that mechanism's
-contribution. Only arm A is run live; B to G are computed from arm A's
-recorded calls in `evaluation/analyse.py`.
+Every run is made under one control configuration. In the run records and
+the result files each configuration has a letter code; the paper names them
+in words. A is what the models do on their own. B and C are the two blunt
+controls the study compares against. D through G switch the controller's
+mechanisms on one at a time, so the difference between two adjacent rows is
+that mechanism's contribution. Only A is run live (plus a live check of G, see
+`results/live_vs_computed.md`); the rest are computed from A's recorded calls
+in `evaluation/analyse.py`.
 
-| Arm | What is on |
+| Code | What is on |
 | --- | --- |
 | A | Nothing. The baseline, bounded only by the 60-step ceiling |
 | B | Account-level allowance, a multiple of an ordinary day's spend |
