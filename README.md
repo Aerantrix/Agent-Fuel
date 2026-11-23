@@ -31,7 +31,7 @@ own computer; no real service is ever called.
 
 ## Status
 
-The stand is complete and the data is in. 636 runs without control, nine
+The stand is complete and the data is in. 660 runs without control, nine
 scenarios, Qwen 2.5 7B locally and four variants of Claude Haiku 5.5, under
 three prompt levels of our own, a fourth with a retry hint in the error text,
 and nine real framework prompts. The computed controls and the findings are in
@@ -53,16 +53,40 @@ agent-fuel/
 │   └── policies.yaml          thresholds as documentation; the code reads its own defaults
 ├── evaluation/
 │   ├── scenarios.json         9 scenarios in three groups
-│   ├── run_experiment.py      the sweep from the command line: 9 x 7 x 3 = 189 runs
-│   └── analyse.py             the computed controls, tables and figures for the paper
-├── console/                   local dashboard with Start and Stop buttons; merge_runs.py joins result files
-├── results/                   summary.md, replay.csv and the figures
+│   ├── run_experiment.py      the sweep from the command line
+│   ├── analyse.py             the computed controls, tables and figures for the paper
+│   ├── compare_live.py        the live controller runs set beside their replay
+│   └── config_matrix.py       the matrix of run configurations, one row per cell
+├── console/                   local dashboard with Start and Stop buttons; batch.py runs a named
+│                              batch of runs; merge_runs.py joins result files
+│   └── data/runs.jsonl        the frozen database: every recorded run the paper is computed from
+├── results/                   summary.md, replay.csv, config_matrix.csv, live_vs_computed.md
 ├── GETTING_STARTED.md         setup from zero and team rules
 └── docs/
     ├── work_log.md            what was done, found and decided, by date
     ├── iteration_log.md       scenarios that defeated the controller
     └── real-prompts/          the ten real agent prompts, their cards and the Ahrefs API responses
 ```
+
+## Reproducing the paper's numbers
+
+The database is `console/data/runs.jsonl`: 754 records after reruns replace
+earlier ones, of which 660 are runs without control (the paper's "660
+recorded runs"), 20 are pilot runs under a step cap and a run budget, and 54
+are the live check of the full controller. Every table and figure in the paper
+is recomputed from it by three commands, in the project's Python environment:
+
+```
+python -m evaluation.analyse          # results/summary.md, results/replay.csv, the figures
+python -m evaluation.compare_live     # results/live_vs_computed.md: live runs beside their replay
+python -m evaluation.config_matrix    # results/config_matrix.csv: what was run under which settings
+```
+
+`replay.csv` has one row per recorded run and control; every number in the
+paper is a count, a sum or a ratio of sums over its rows. `config_matrix.csv`
+has one row per model setting, prompt condition, scenario and control
+configuration, with the record count, the repeats, the temperature and the
+dates of the first and last run.
 
 ## The seven arms
 

@@ -1,0 +1,377 @@
+model,thinking,effort,temperature,condition,scenario,control,records,repeats,pilot,first_run,last_run
+claude-haiku-5-5,off,high,default,base,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,base,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,lenient,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,high,default,strict,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,base,15,no control (live),3,1 2 3,0,2026-11-09,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,lenient,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,off,low,default,strict,13,no control (live),3,1 2 3,0,2026-11-09,2026-11-16
+claude-haiku-5-5,off,low,default,strict,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,base,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,lenient,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,high,default,strict,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P01_smolagents,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P01_smolagents,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P01_smolagents,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P01_smolagents,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P01_smolagents,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P01_smolagents,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P01_smolagents,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,13,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P02_crewai,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,13,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P03_llamaindex_react,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,13,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P04_langchain_react,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,13,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P05_cline,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,13,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P06_openhands,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,13,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P07_swe_agent,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,13,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P08_codex_cli,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,1,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,2,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,3,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,4,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,5,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,6,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,8,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,P09_goose,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,base+hint,15,no control (live),1,1,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,lenient,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,1,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,2,no control (live),3,1 2 3,0,2026-11-09,2026-11-16
+claude-haiku-5-5,on,low,default,strict,2,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,3,no control (live),3,1 2 3,0,2026-11-09,2026-11-16
+claude-haiku-5-5,on,low,default,strict,3,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,4,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,5,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,6,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,8,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,13,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+claude-haiku-5-5,on,low,default,strict,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+claude-haiku-5-5,on,low,default,strict,15,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,0.0,base,1,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,2,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,3,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,4,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,5,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,6,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,8,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,13,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,base,15,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,1,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,1,"step cap (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,1,"run budget (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,2,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,2,"step cap (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,2,"run budget (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,3,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,3,"step cap (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,3,"run budget (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,4,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,4,"step cap (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,4,"run budget (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,5,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,6,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,8,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,8,"step cap (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,8,"run budget (live, pilot)",1,1,1,2026-11-02,2026-11-02
+qwen2.5:7b,,,0.0,lenient,13,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,lenient,15,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,1,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,2,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,3,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,4,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,5,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,6,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,8,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,13,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,0.0,strict,15,no control (live),1,1,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,P01_smolagents,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,4,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,6,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,13,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P01_smolagents,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P02_crewai,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P02_crewai,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P02_crewai,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P02_crewai,4,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P02_crewai,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P02_crewai,6,no control (live),1,1,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,P02_crewai,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P02_crewai,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,4,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,6,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,13,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P03_llamaindex_react,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P04_langchain_react,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P04_langchain_react,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P04_langchain_react,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P04_langchain_react,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P04_langchain_react,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P04_langchain_react,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P04_langchain_react,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P04_langchain_react,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-23
+qwen2.5:7b,,,1.0,P04_langchain_react,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-22
+qwen2.5:7b,,,1.0,P05_cline,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P05_cline,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P05_cline,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P05_cline,4,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P05_cline,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P05_cline,6,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P05_cline,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P05_cline,13,no control (live),1,1,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,P05_cline,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,4,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,6,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,13,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P06_openhands,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,4,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,6,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,13,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P07_swe_agent,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,4,no control (live),1,1,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,P08_codex_cli,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,6,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,13,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P08_codex_cli,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,1,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,2,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,3,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,4,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,5,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,6,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,8,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,13,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,P09_goose,15,no control (live),1,1,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,base,1,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,2,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,3,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,4,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,5,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,6,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,8,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,13,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base,15,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,base+hint,1,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,base+hint,2,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,base+hint,3,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,base+hint,4,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,base+hint,5,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,base+hint,6,no control (live),3,1 2 3,0,2026-11-16,2026-11-23
+qwen2.5:7b,,,1.0,base+hint,8,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,base+hint,13,no control (live),3,1 2 3,0,2026-11-16,2026-11-23
+qwen2.5:7b,,,1.0,base+hint,15,no control (live),3,1 2 3,0,2026-11-16,2026-11-16
+qwen2.5:7b,,,1.0,lenient,1,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,1,"step cap (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,1,"run budget (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,2,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,2,"step cap (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,2,"run budget (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,3,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,3,"step cap (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,3,"run budget (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,4,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,4,"step cap (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,4,"run budget (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,5,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,6,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,8,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,8,"step cap (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,8,"run budget (live, pilot)",3,1 2 3,3,2026-11-02,2026-11-02
+qwen2.5:7b,,,1.0,lenient,13,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,lenient,15,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,1,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,1,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,2,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,2,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,3,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,3,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,4,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,4,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,5,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,5,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,6,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,6,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,8,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,8,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,13,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,13,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23
+qwen2.5:7b,,,1.0,strict,15,no control (live),3,1 2 3,0,2026-11-09,2026-11-09
+qwen2.5:7b,,,1.0,strict,15,Agent Fuel (live check),3,1 2 3,0,2026-11-23,2026-11-23

@@ -473,3 +473,142 @@ controller: still open.
 of 9 scenarios per model and prompt; the gaps are single API or Ollama
 timeouts). All Haiku variants rerun with the fixed parser; no run ended by
 the stand. Pull requests: #1 real prompts, #2 stand v2.
+
+## 22 November 2026: the controller goes live, repeats, and unknown tools
+
+Pull requests #1 (real prompts), #2 (stand v2) and #3 (the documents on nine
+scenarios) are merged; the main folder is on `master`.
+
+### Unknown-tool calls go through the controller
+
+Decided and done. When the agent calls a tool that does not exist, the
+runner now reports it to the controller as a failed call (`after_tool` with
+an `UnknownTool` error) before answering "No such tool". Before, only
+`before_tool` saw such a call and the controller never learnt how it ended.
+The error carries no status, so the error classifier lets it pass: inventing
+a tool once is not terminal, the agent can go back to the real one (Haiku
+under SWE-agent called `bash` once in four runs and then worked normally).
+The breaker counts it against that name; the loop detector fingerprints it,
+so the same invented call three times is a stop. `evaluation/analyse.py`
+replays the same way. Checked without a model: under arm A the run goes on,
+under arm G the third identical unknown call stops it by the call fingerprint.
+
+Over the 636 recorded runs the replay does not change by a single row: in
+the six runs with unknown tools no invented call repeats three times. The
+one *not covered* run among them (Qwen under LangChain, scenario 4, eight
+steps, five different invented tools after two timeouts) stays not covered.
+Arm A records are unaffected by the change, since the controller is inert
+in arm A; nothing needs rerunning.
+
+### Batches outside the console: `console/batch.py`
+
+The launch scripts of 16 November lived in a session scratchpad and are
+gone; their successor is in the repository. `python console/batch.py --list`
+names the batches, each a list of `worker.py` invocations writing to
+`console/data/batches/<name>/` with a `launch.log`; `--dry-run` prints the
+commands. Results are folded in with `console/merge_runs.py`. Batches
+defined today: `live-g` (the controller live), `haiku-gaps` and `qwen-gaps`
+(the single timeouts), `qwen-langchain-r23`, `qwen-real-r23`, `haiku-real-r23`
+(repeats on the real prompts).
+
+### Live controller runs: the plan
+
+Arm G live on Haiku 5.5 thinking+low under strict, nine scenarios, three
+repeats (27 paid runs, about five cents). Strict is the one prompt level at
+which the computed controller fires on Haiku; at lenient and base the agent
+gives up before the controller has anything to do, so a live run there would
+confirm nothing. Thinking+low is the variant the real prompts and base+hint
+were run on. The paid runs are the author's to start:
+
+    python console/batch.py live-g
+    python console/merge_runs.py console/data/batches/live-g
+    python -m evaluation.compare_live
+
+`evaluation/compare_live.py` is new: for every live run of arms D to G it
+replays the matching arm A run (same model, prompt, temperature, scenario,
+repeat) and puts the two side by side, halt mechanism and tokens, writing
+`results/live_vs_computed.md`. The live run is a fresh sample, so steps and
+tokens differ; what should agree is whether the controller halted and by
+which mechanism. One thing the live run adds that replay cannot: the warn
+rung, where the agent sees the controller's notice and may change course.
+Smoke-tested on the pilot's twenty arm D runs: 20 of 20 agree.
+
+### Repeats on the real prompts
+
+Started locally: Qwen t=1 under LangChain MRKL, repeats 2 and 3 (18 runs,
+`qwen-langchain-r23`); the first repeat held the only real-prompt runaway
+(60 steps on the auth error, 494k tokens in one run). The other eight Qwen
+prompts and the Haiku repeats are defined as batches and not yet run.
+
+### Gaps
+
+Single timeouts to fill: Qwen P02 scenarios 6 and 13, P05 13, P08 4,
+base+hint 6 (r2, r3) and 13 (r1); Haiku P01 13 and 15, P09 13, base+hint 15
+(r2, r3). The Qwen ones run locally after the LangChain repeats; the Haiku
+ones are `haiku-gaps`. The API key expires on 25 November.
+
+**LangChain on Qwen, three repeats (late 22 November).** 17 of 18 new runs
+landed (scenario 13, repeat 3, lost to an Ollama timeout at step 21). The
+runaway on the authentication error repeated: two of three repeats hit the
+60-step ceiling (493,799 and 291,452 tokens), the third stopped at step 5.
+Over the 18 refusal runs: 47,129 tokens on average, 7 of 18 gave up by
+step 3; Agent Fuel takes 98.7 percent of the excess, the step cap 88.7,
+the account limit 88.9. One forty-domain run is halted by the loop
+detector's call fingerprint: Qwen put all forty domains into one argument
+and repeated the identical call five times, a property of the free-text
+protocol rather than honest work. Records merged into `runs.jsonl` (714
+records), `summary.md` regenerated.
+
+## 23 November 2026: the controller live
+
+Configuration G run live by the author on Haiku 5.5, thinking, low effort,
+strict: nine scenarios, three repeats, 27 runs, $0.03 (`console/batch.py
+live-g`, merged, `evaluation/compare_live.py`). Set beside the replay of the
+same cells:
+
+- Where the controller stops without warning first, live and replay agree
+  exactly: the error classifier ends every authentication run at step 1;
+  the run budget ends every forty-domain run at step 29 live, 28 replayed.
+- Everywhere else the warn rung changes who stops the run, not when. In 13
+  of 18 refusal runs the agent read the notice at step 2 and ended the run
+  itself at step 3, the step at which the replay has the loop detector stop
+  it; in two (scenario 8) the detector stopped it live as replayed. Live
+  refusal runs cost a little more than replayed, the notice being in the
+  context.
+- The healthy side is where live differs. In all three runs of the
+  flapping-service task the controller only warned (loop detector on the
+  retry of the same call at steps 3, 5, 7; breaker at 3 of 5 failed at
+  step 7) and never stopped, yet Haiku abandoned the task after four of
+  ten domains with a partial report. Replay counts these runs as intact;
+  live, the warning alone spoiled them. The notice's wording ("stop
+  retrying this tool and either proceed with partial results or report
+  what you could not retrieve") tells the agent to do exactly what a
+  flapping service does not need. The warn rung is not free.
+- `compare_live.py` now labels a live run that stopped itself after a
+  warning and counts same-step agreement: 21 of 27 end at the same step;
+  the forty-domain runs end one step later live (the notices add tokens,
+  the budget is reached a step later), the flapping-service runs earlier
+  (abandoned).
+
+### Later on 23 November: the controller live on Qwen, and the gaps
+
+`live-g-qwen`: configuration G on Qwen 2.5 7B, t=1, strict, 27 runs, local.
+Against the replay: 17 of 27 end at the same step. Where the controller
+stops without warning, exact again (401 at step 1, run budget at step 30 on
+the forty-domain task, within a step of the replay). On the refusal
+scenarios the live sample differs from the recorded one mostly by the
+model's own randomness: Qwen at t=1 either gives up at step 2 or runs
+away, and the live draw need not match the recorded draw (scenario 1: two
+live runs gave up at step 2, the recorded three ran to 60; scenario 5 the
+reverse). Where it persisted, it stopped itself after the notice (4) or was
+stopped by the detector (5), as on Haiku. Flapping service: the breaker
+halted two of three live runs at steps 6 and 7, as replayed, through the
+retry-argument property of the stand; in the third Qwen read four notices,
+ignored them and finished all ten domains in 20 steps. Live refusal runs
+cost 7,373 tokens on average against 4,742 replayed and 42,207 without
+control.
+
+`qwen-gaps`: 7 of 8 landed (CrewAI on scenario 13 lost to an Ollama HTTP
+500). Notable: Qwen under base+hint on the forty-domain task ran 41 steps
+for 145,087 tokens; LangChain repeat 3 on the same task stopped at step 3.
+Merged: 775 records in `runs.jsonl`; `summary.md` regenerated.

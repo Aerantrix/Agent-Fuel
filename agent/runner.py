@@ -419,7 +419,16 @@ def run_agent(task, tools, controller, step_cap=None, account_cap=None):
 
         tool = tools.get(tool_name)
         if tool is None:
+            # A call to a tool that does not exist is a failed call and the
+            # controller sees it as one, as it would at a framework's tool
+            # layer: the breaker counts it against that name, the loop
+            # detector fingerprints it. It is not a terminal error (the agent
+            # can still go back to the real tool), so the classifier lets it
+            # pass. Before 22 November these calls bypassed after_tool.
+            after = controller.after_tool(tool_name, args, error=UnknownTool(tool_name))
             answer(f"No such tool: {tool_name}", is_error=True)
+            if after.stops:
+                break
             continue
 
         try:
@@ -502,3 +511,13 @@ def parse_action(text):
 
 parse_action.deviation = None
 ONE_CALL_NOTICE = "One tool call per reply. Only the first call was executed."
+
+
+class UnknownTool(Exception):
+    """The agent called a tool that does not exist. Passed to the controller
+    as the error of a failed call; it has no status, so the error classifier
+    treats it as unknown and lets the run go on."""
+
+    def __init__(self, name):
+        super().__init__(f"No such tool: {name}")
+        self.tool = name
