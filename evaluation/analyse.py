@@ -60,7 +60,7 @@ sys.path.insert(0, str(ROOT))
 
 from control.agent_fuel import AgentFuel, build_controller  # noqa: E402
 from sandbox.fake_tools import build_tools  # noqa: E402
-from agent.runner import parse_action  # noqa: E402
+from agent.runner import parse_action, UnknownTool  # noqa: E402
 from agent import real_prompts  # noqa: E402
 
 RESULTS = ROOT / "results"
@@ -153,13 +153,15 @@ def replay(r, arm):
             return spent, i + 1, ctl.halted.mechanism
         tool = tools.get(tool_name)
         if tool is None:
-            continue
-        try:
-            result = tool.get_metrics(**args)
-        except Exception as exc:  # the stub raises on purpose; so does a bad argument
-            after = ctl.after_tool(tool_name, args, error=exc)
+            # As in the runner since 22 November: a failed, non-terminal call.
+            after = ctl.after_tool(tool_name, args, error=UnknownTool(tool_name))
         else:
-            after = ctl.after_tool(tool_name, args, result=result)
+            try:
+                result = tool.get_metrics(**args)
+            except Exception as exc:  # the stub raises on purpose; so does a bad argument
+                after = ctl.after_tool(tool_name, args, error=exc)
+            else:
+                after = ctl.after_tool(tool_name, args, result=result)
         if after.stops:
             return spent, i + 1, ctl.halted.mechanism
 
