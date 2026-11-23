@@ -65,7 +65,7 @@ agent-fuel/
 └── docs/
     ├── work_log.md            what was done, found and decided, by date
     ├── iteration_log.md       scenarios that defeated the controller
-    └── real-prompts/          the ten real agent prompts, their cards and the Ahrefs API responses
+    └── real-prompts/          other frameworks' default prompts, copied word for word, with cards; Ahrefs API responses
 ```
 
 ## Reproducing the paper's numbers
@@ -136,6 +136,13 @@ level; only the controller ever hints at anything. A fourth condition adds
 "Please try again later." to the transient errors, and the nine real prompts
 in `docs/real-prompts/` run the same scenarios under other frameworks' default
 instructions.
+
+Two kinds of prompt, in two places. The project's own prompts, the three
+levels and the hint variant, are in `agent/runner.py`. The prompts in
+`docs/real-prompts/` are not ours: they are the default instructions that
+LangChain, CrewAI, SWE-agent and the other frameworks send to the model,
+copied word for word from their repositories, with a card per prompt giving
+the permanent link, the commit and the licence.
 
 Models: `qwen2.5:7b` through Ollama at temperature 0 and 1, and
 `claude-haiku-5-5` with thinking on and off at effort low and high. Within a
