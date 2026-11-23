@@ -1,13 +1,24 @@
-"""The agent loop. This is the part you wire to a real model.
+"""The agent loop: the system under study.
 
-Everything the controller needs is already threaded through:
+One episode is run_agent(): the agent gets a task and one tool, calls the
+model, reads the reply as a tool call or a finish, calls the tool, and goes
+round again until it finishes, the controller stops it, or the 60-step
+ceiling ends the run. Two model backends (Ollama for Qwen 2.5 7B, the
+Anthropic API for Claude Haiku 5.5), one JSON action protocol for both, and
+a second path with the provider's built-in tool calling for the framework
+prompts that use it. The controller is consulted at every point where money
+can be spent:
+
     controller.before_step()      at the top of each turn
     controller.before_tool(...)   before a tool call (a STOP here costs nothing)
-    controller.after_tool(...)    after it returns or raises
+    controller.after_tool(...)    after it returns, raises, or names no tool
     controller.record_model_call  after every model call
-    controller.drain_warnings()   messages to inject into the agent's context
+    controller.drain_warnings()   notices to put into the agent's context
 
-Replace call_model() with your provider's SDK and the rest holds.
+The three prompt levels and the hint variant are set from the environment;
+see agent/README.md for every variable and its default. Token counts are
+read from the provider's response and never estimated; neither backend
+retries, since retry behaviour is what the experiment measures.
 """
 
 import os

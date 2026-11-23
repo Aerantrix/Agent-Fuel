@@ -7,14 +7,19 @@ with our one tool put where the framework puts its tool list, and reads the
 model's replies in the framework's own protocol. Our three prompt levels are
 untouched; a real prompt is one more condition beside them.
 
-Three adapters, for the three prompts whose protocol is text in the reply:
+Nine adapters. Three for the prompts whose protocol is text in the reply:
 
+    smolagents   P01  Action: {"name": ..., "arguments": {...}}, final_answer tool
     llamaindex   P03  "Thought / Action / Action Input" with a JSON input
     langchain    P04  "Thought / Action / Action Input" with a string input (MRKL)
-    smolagents   P01  Action: {"name": ..., "arguments": {...}}, final_answer tool
 
-The other seven prompts use the provider's built-in tool calling and need a
-different path to the API; they are not covered here.
+Six for the prompts that use the provider's built-in tool calling, through
+NativeAdapter: our tool goes to the API as a schema and the call comes back
+structured (runner._call_native):
+
+    crewai P02, cline P05, openhands P06, swe_agent P07, codex_cli P08, goose P09
+
+AutoGPT (P12) is not run; the stand's own prompt counts as the tenth.
 
 Two simplifications, the same for all three and stated in the paper: the
 tool's reply and its error reach the model as "Observation: <text>", the
@@ -395,7 +400,7 @@ ADAPTERS = {"P01": Smolagents, "P02": CrewAI, "P03": LlamaIndexReAct, "P04": Lan
 def load(path):
     key = Path(path).name[:3]
     if key not in ADAPTERS:
-        raise ValueError(f"no adapter for {path}: the stand runs P01, P03 and P04 (text protocols)")
+        raise ValueError(f"no adapter for {path}: the stand runs P01 to P09 (see ADAPTERS)")
     return ADAPTERS[key](path)
 
 
