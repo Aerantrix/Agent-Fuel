@@ -8,13 +8,14 @@ says *what changed in the study design and why*; `iteration_log.md` says
 *what broke in the stand and how it was fixed*; `work_log.md` is the
 engineering log as written at the time.
 
-Weeks 1 to 3 (topic selection, literature, team formation) are not recorded
-in the repository; they are to be added from the weekly milestone
-submissions.
+Weeks 1 to 3 came before the repository; they are written down here from the
+team's recollection and the weekly milestone submissions.
 
 | Week | Methodology: what was decided, and why | Stand and data | Documents |
 | --- | --- | --- | --- |
-| 1–3 | *To be added from the weekly milestones: topic selection, the first reading of the literature, team formation.* | | Project brief received (21 September). |
+| 1 | The course requirements studied; no project decisions yet. | | Project brief received (21 September). |
+| 2 | The topic discussed and worked out. | | |
+| 3 | Literature selected and analysed; the problems other studies ran into discussed and examined. The research question in its final wording; a first draft of the methodology, the general approach. | | |
 | 4 | The project proposal. The research question in its final wording. Major technology: agentic AI with tool invocation; supporting technology: fault-tolerance patterns from distributed systems; second supporting technology: decision telemetry. Method: a comparative experiment through scenario-based simulation, not design science. Fifteen scenarios in three groups, seven configurations × three repeats = 315 runs. Two measures held in tension: overspend prevented against legitimate tasks interrupted. Rejected: fine-tuning the agent, a second model as judge, telemetry-fitted detectors. | First code of the controller (`agent_fuel.py`). | "Spend Resilience in LLM Agents", four versions in the week; references [1]–[7], then to [17], with provenance notes. |
 | 5 | Three failures written down in advance as expected to defeat the first implementation (scenarios 2, 6, 14), so that a failure predicted in writing counts for more than one fixed quietly. Testing in three stages: one scenario with no control, the same with two mechanisms, then the full sweep. | The first task formulated and handed to the developer (OpenAI Codex) with the code package, DEVELOPER.md and a dashboard mock-up with invented data: https://claude.ai/artifact/Pgv73Eu6iZvwAUitidp8ne. | First architecture diagram; the fifteen-scenario document. |
 | 6 | The first turn. The first hosted sweep on Haiku 5.5 showed that the agent does not loop by itself: 103 of 105 runs ended within five steps. The question went to the author: push the agent to persist, or report "current models give up by themselves" as the finding. Answer: prompt pressure becomes the experimental variable, and the pilot runs under three persistence conditions. Model decisions: Haiku without a temperature setting (the API rejects one), with and without thinking; Haiku 4.5 not used. | Review of the brief, seven fixes, git initialised. Domains written into the multi-domain tasks. Harness defects found: identical metrics for every domain, latency invisible, the "impossible" period reachable. The 50,000-token budget cuts the honest forty-domain task for the first time; the threshold is left alone rather than tuned on its own test. Local console with Start and Stop; team README. Pilot begins. | Work log begun. |
