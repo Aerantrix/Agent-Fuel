@@ -13,11 +13,9 @@ results/*.png
 # Built for handing to the developer, rebuilt on demand
 agent-fuel-for-developer.zip
 
-# Local console: run data and the page built from dashboard.src.html.
-# The frozen database of records the paper is computed from is kept.
+# Local console: run data stays local except the frozen database the paper is computed from.
 console/data/*
 !console/data/runs.jsonl
-console/dashboard.html
 
 # The project's Python environment, created by each person (see README)
 .venv/

@@ -8,6 +8,13 @@ CSIT305 research project, University of Wollongong in Dubai.
 > setting up from zero (VS Code, the local model, your own API key) and how
 > the team works together.
 
+## Project documents
+
+- [Project progress report](https://uowmailedu-my.sharepoint.com/:w:/g/personal/dm527_uowmail_edu_au/IQDFO5vuNz18Tr3km1-UHGlXAT8HXiSojriNkj6aG3WAfLQ?rtime=eI6qdtVD30g)
+  (SharePoint, UOW account): the course of the project, week by week.
+- [Team contribution declaration](https://docs.google.com/document/d/1F7ZueZrQGv9BIYD56ktuSQMWgOo4KFPySDXiRp37D7I/edit?tab=t.0)
+  (Google Docs): who did what.
+
 ## The question
 
 How do execution-level spend controls compare with account-level limits and
@@ -57,8 +64,10 @@ agent-fuel/
 │   ├── analyse.py             the computed controls, tables and figures for the paper
 │   ├── compare_live.py        the live controller runs set beside their replay
 │   └── config_matrix.py       the matrix of run configurations, one row per cell
-├── console/                   local dashboard with Start and Stop buttons; batch.py runs a named
-│                              batch of runs; merge_runs.py joins result files
+├── console/                   the local console, one page in two modes: Data (the results, the
+│                              scenario matrix, any run step by step) and Run (start a run and
+│                              watch it step by step); batch.py runs a named batch of runs;
+│                              merge_runs.py joins result files. See console/README.md
 │   └── data/runs.jsonl        the frozen database: every recorded run the paper is computed from
 ├── results/                   summary.md, replay.csv, config_matrix.csv, live_vs_computed.md
 ├── GETTING_STARTED.md         setup from zero and team rules
@@ -67,6 +76,19 @@ agent-fuel/
     ├── iteration_log.md       scenarios that defeated the controller
     └── real-prompts/          other frameworks' default prompts, copied word for word, with cards; Ahrefs API responses
 ```
+
+## The console
+
+```
+python console/server.py        # then open http://127.0.0.1:8790
+```
+
+or double-click `console/Agent Fuel.command` on a Mac. **Data** shows the
+frozen database, the controls computed over it, the scenario matrix and any run
+step by step. **Run** starts a run on the local model or on Haiku (four presets
+tell the paper's story) and shows it step by step as it happens; a finished run
+joins the tables marked as a console run, and the matrix can leave such runs
+out. Details: [console/README.md](console/README.md).
 
 ## Reproducing the paper's numbers
 

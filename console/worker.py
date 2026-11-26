@@ -45,6 +45,8 @@ ap.add_argument("--error-hint", action="store_true",
                 help="the fourth condition: the service's transient errors add 'Please try again later.'; "
                      "the run is recorded with '+hint' after the condition")
 ap.add_argument("--temperature", type=float, default=0.0)
+ap.add_argument("--id-suffix", default="",
+                help="appended to every run id, so console runs never replace a record of the frozen database")
 args = ap.parse_args()
 
 cfg = CONFIGS[args.config]
@@ -78,6 +80,7 @@ DATA = Path(args.data)
 DATA.mkdir(parents=True, exist_ok=True)
 RUNS = DATA / "runs.jsonl"
 NOW = DATA / "now.json"
+LIVE = DATA / "live.json"  # the run in progress, step by step, for the console's Run view
 
 wanted = {int(x) for x in args.scenarios.split(",") if x}
 arms = [a.strip().upper() for a in args.arms.split(",") if a.strip()]
@@ -86,7 +89,31 @@ repeat_ids = [int(x) for x in args.repeat_ids.split(",") if x.strip()] or list(r
 plan = [(s, a, r) for s in scenarios for a in arms for r in repeat_ids]
 
 spent = {"usd": 0.0, "tokens": 0}
-current = {"label": "", "trace": [], "seen": 0, "index": 0}
+current = {"label": "", "trace": [], "seen": 0, "index": 0, "controller": None, "meta": {}}
+
+# The controller of the run in progress, so its decisions can be shown live.
+_real_build = rx.build_controller
+
+
+def _capture_controller(code, *a, **kw):
+    c = _real_build(code, *a, **kw)
+    current["controller"] = c
+    # The tool's reply for the current step, as soon as the controller sees it,
+    # so the live view does not wait for the next model call to learn it.
+    real_after = c.after_tool
+
+    def after_tool(tool, args, result=None, error=None):
+        if current["trace"]:
+            current["trace"][-1]["tool_result"] = (f"Tool error: {error}" if error is not None else f"Tool result: {result}")[:2000]
+        verdict = real_after(tool, args, result=result, error=error)
+        write_live()
+        return verdict
+
+    c.after_tool = after_tool
+    return c
+
+
+rx.build_controller = _capture_controller
 
 
 def stamp():
@@ -104,6 +131,19 @@ def write_now(active, doing):
 
 def log(msg):
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
+
+
+def write_live(done=False, outcome=None):
+    """The run in progress: every step so far and every controller decision so far."""
+    c = current["controller"]
+    trace = current["trace"]
+    tokens = sum(s["in"] + s["out"] for s in trace)
+    doc = dict(current["meta"], active=not done, done=done, updated=stamp(), steps=trace,
+               decisions=decision_rows(c.journal.rows) if c is not None else [],
+               tokens=tokens, step=len(trace), total=len(plan), index=current["index"] + 1)
+    if outcome:
+        doc["outcome"] = outcome
+    LIVE.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
 
 
 def stop(signum, frame):
@@ -129,6 +169,7 @@ def traced_call(messages, model=runner.DEFAULT_MODEL):
     trace.append({"step": len(trace) + 1, "in": tin, "out": tout, "reply": text[:4000]})
     current["seen"] = len(messages) + 1  # the runner appends this reply next
     write_now(True, f"{current['label']} · step {len(trace)}")
+    write_live()
     return text, tin, tout, cost
 
 
@@ -162,6 +203,12 @@ for i, (scenario, arm, repeat) in enumerate(plan, start=1):
     run_id += "-" + args.condition
     if TEMP not in (0, "default"):
         run_id += f"-t{TEMP:g}"
+    run_id += args.id_suffix
+    current["meta"] = {"id": run_id, "model": cfg["label"], "condition": args.condition, "temperature": TEMP,
+                       "scenario_id": scenario["id"], "arm": arm, "repeat": repeat, "label": current["label"],
+                       "started": stamp()}
+    current["controller"] = None
+    write_live()
 
     try:
         row, journal = rx.one_run(scenario, arm, repeat)
@@ -174,6 +221,7 @@ for i, (scenario, arm, repeat) in enumerate(plan, start=1):
                "steps": len(current["trace"]), "trace": current["trace"]}
         with RUNS.open("a", encoding="utf-8") as f:
             f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+        write_live(done=True, outcome={"error": doc["error"]})
         if errors_in_a_row >= 3:
             log("three errors in a row, stopping")
             write_now(False, "Stopped: three errors in a row. See the launch log.")
@@ -200,6 +248,10 @@ for i, (scenario, arm, repeat) in enumerate(plan, start=1):
     }
     with RUNS.open("a", encoding="utf-8") as f:
         f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+    # the finished run's own trace holds the last tool result; the live view takes it from here
+    current["trace"] = trace
+    write_live(done=True, outcome={k: doc[k] for k in ("steps", "tokens", "cost_usd", "halted", "halt_mechanism",
+                                                        "halt_reason", "task_completed", "task_completable")})
     current["index"] = i
     log(f"done: {row['steps']} steps, {row['tokens']} tokens, ${row['cost_usd']:.4f}"
         + (f", halted by {row['halt_mechanism']}" if row["halted"] else ""))
