@@ -124,6 +124,7 @@ button.cell[data-has] { cursor: pointer; }
 button.cell[data-has]:hover { border-color: var(--ink-2); }
 .cell.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cell small { font-weight: 400; font-size: 10.5px; display: block; }
+.cell small.mixed { font-weight: 600; }
 .c-agent { background: var(--warn-soft); color: var(--warn); }
 .c-controller { background: var(--ctl-soft); color: var(--ctl); }
 .c-warned { background: var(--ctl-soft); color: var(--ctl); border: 1px dashed var(--ctl) !important; }
@@ -223,6 +224,7 @@ body[data-mode="data"] #runpanel, body[data-mode="data"] #livepanel { display: n
   <div class="runmeta" id="runmeta">
     <span id="conds" class="models" role="radiogroup" aria-label="Condition"></span><br>
     <span id="temps" class="models" role="radiogroup" aria-label="Qwen temperature"></span><br>
+    <span id="srcs" class="models" aria-label="Runs started from this console"></span>
     <span id="models" class="models" role="group" aria-label="Models"></span><br>
     runs in view <b id="m-runs">0</b><br>
     spent <b id="m-cost">$0</b>
@@ -324,7 +326,7 @@ body[data-mode="data"] #runpanel, body[data-mode="data"] #livepanel { display: n
 
 <section class="panel" style="margin-top:18px">
   <div class="panel-head">
-    <div><h3>Scenario matrix</h3><p class="cap">Each cell shows median tokens across repeats and the step count. Colour shows how the run ended. Click a cell to open the run step by step.</p></div>
+    <div><h3>Scenario matrix</h3><p class="cap">Each cell shows median tokens across repeats and the steps of the median repeat. Colour shows the worst ending among the repeats; when the repeats ended differently, a second line counts how many ended that way. Click a cell to open the median repeat step by step.</p></div>
   </div>
   <div class="legend">
     <span><i class="box c-agent"></i>agent gave up</span>
@@ -431,21 +433,25 @@ const TEMPS = [0, 1];
 // Several conditions and temperatures can be ticked at once. Each ticked
 // combination then becomes its own series, drawn like a separate model, so
 // the charts compare them side by side instead of pooling them.
-let allRuns = [], runs = [], selectedId = null, conds = new Set(["base"]), temps = new Set([0]);
+let allRuns = [], runs = [], selectedId = null, conds = new Set(["base"]), temps = new Set([0]), withConsole = true;
 // The ticks live in the address (#cond=base,strict&temp=0,1), so a comparison can be
 // reopened or shared. The hash, not the query: the local server serves only "/".
 try {
   const q = new URLSearchParams(location.hash.slice(1)), qc = q.get("cond"), qt = q.get("temp");
   if (qc) conds = new Set(qc.split(",").filter(x => CONDITIONS.some(c => c.id === x)));
   if (qt) temps = new Set(qt.split(",").map(Number).filter(x => [0, 1].includes(x)));
+  if (q.get("console") === "0") withConsole = false;
 } catch {}
 function saveTicks() {
   try { const q = new URLSearchParams(location.hash.slice(1)); q.set("cond", [...conds].join(",")); q.set("temp", [...temps].join(","));
+    withConsole ? q.delete("console") : q.set("console", "0");
     history.replaceState(null, "", "#" + q.toString()); } catch {}
 }
 const condOf = r => r.condition || "baseline";
 const tempOf = r => r.temperature ?? (String(r.model).startsWith("claude") ? "default" : 0);
-const visible = r => conds.has(condOf(r)) && (tempOf(r) === "default" || temps.has(tempOf(r)));
+// Runs started from this console sit beside the frozen database; they can be
+// left out so the matrix and the numbers show the experiment alone.
+const visible = r => (withConsole || !r.console) && conds.has(condOf(r)) && (tempOf(r) === "default" || temps.has(tempOf(r)));
 const seriesKey = (model, c, t) => [model, conds.size > 1 ? c : null, temps.size > 1 && t !== "default" ? "t" + t : null].filter(x => x != null).join("|");
 function applyFilter() { saveTicks(); runs = allRuns.filter(visible).map(r => ({...r, series: seriesKey(r.model, condOf(r), tempOf(r))})); }
 function setRuns(list) { allRuns = list; applyFilter(); }
@@ -491,6 +497,15 @@ function renderConds() {
     lab.title = t === 0 ? "deterministic: always the most likely reply" : "sampled at the usual provider default, like Haiku";
     tb.append(lab);
   });
+  const sb = $("srcs"); sb.replaceChildren();
+  const mine = allRuns.filter(r => r.console).length;
+  if (!mine) return;
+  const lab = el("label", "mchip" + (withConsole ? " on" : "")), rb = el("input");
+  rb.type = "checkbox"; rb.checked = withConsole; rb.id = "with-console";
+  rb.onchange = () => { withConsole = rb.checked; applyFilter(); refresh(); };
+  lab.append(rb, document.createTextNode("Include console runs"), el("small", null, String(mine)));
+  lab.title = "Runs started from this console count as extra repeats in the matrix and in the numbers. Untick to see the frozen database alone.";
+  sb.append(el("span", "lbl", "Sources"), lab);
 }
 function refresh() { renderConds(); renderModelChips(); setCurveScenarios(); renderResults(); }
 let chosen = new Set(MODELS.map(m => m.id));
@@ -703,15 +718,33 @@ function renderTrade() {
 }
 
 // --- matrix ----------------------------------------------------------------
+// A cell stands for several repeats. Its steps and its click come from the
+// repeat whose tokens are the median (of an even count, the upper middle), so
+// they match the number shown; its colour comes from the worst ending, so a
+// runaway in two repeats of three is not hidden by a third that gave up.
+const WORST = ["ceiling", "false", "agent", "warned", "controller", "ok"];
+const END_SHORT = {ceiling: "ceiling", false: "halted by mistake", agent: "gave up", warned: "warned", controller: "halted", ok: "completed"};
+const medianRun = here => [...here].sort((a, b) => a.tokens - b.tokens)[here.length >> 1];
+function worstOf(here) {
+  const ends = here.map(outcome), worst = WORST.find(o => ends.includes(o));
+  return {worst, n: ends.filter(o => o === worst).length, run: here[ends.indexOf(worst)]};
+}
 function cellButton(here, title, arm, short) {
-  const rep = here[here.length - 1], b = el("button", "cell c-" + outcome(rep) + (rep.computed ? " computed" : "") + (rep.console ? " console-run" : "")); b.type = "button"; b.dataset.has = "1";
-  if (rep.computed) b.title = "Computed by replaying the controller over the uncontrolled run; not a live run.";
-  if (rep.console) b.title = "Started from this console; kept apart from the frozen database.";
+  const rep = medianRun(here), {worst, n} = worstOf(here), mixed = n < here.length;
+  const computed = here.some(r => r.computed), fromConsole = here.some(r => r.console);
+  const b = el("button", "cell c-" + worst + (computed ? " computed" : "") + (fromConsole ? " console-run" : "")); b.type = "button"; b.dataset.has = "1";
+  const notes = here.map(r => `repeat ${r.repeat || 1}${r.console ? " (console)" : ""}: ${r.steps} steps, ${fmtNum(r.tokens)} tokens, ${END_LABEL[outcome(r)]}`);
+  if (computed) notes.push("Computed by replaying the controller over the uncontrolled run; not a live run.");
+  if (fromConsole) notes.push("Includes runs started from this console; kept apart from the frozen database.");
+  b.title = notes.join("\n");
   if (short) b.append(el("span", "mk", short));
   const val = el("span"); val.textContent = fmtNum(median(here.map(r => r.tokens)));
-  val.append(el("small", null, `${rep.steps} steps${here.length > 1 ? " · ×" + here.length : ""}`)); b.append(val);
-  b.setAttribute("aria-label", `${title}, arm ${arm}${short ? ", " + short : ""}: ${END_LABEL[outcome(rep)]}, ${rep.steps} steps`);
-  if (rep.id === selectedId) b.classList.add("sel");
+  val.append(el("small", null, `${rep.steps} steps${here.length > 1 ? " · ×" + here.length : ""}`));
+  if (mixed) val.append(el("small", "mixed", `${n} of ${here.length} ${END_SHORT[worst]}`));
+  b.append(val);
+  b.setAttribute("aria-label", `${title}, arm ${arm}${short ? ", " + short : ""}: median ${fmtNum(median(here.map(r => r.tokens)))} tokens, ${rep.steps} steps; `
+    + (mixed ? `${n} of ${here.length} repeats: ${END_LABEL[worst]}` : END_LABEL[worst]));
+  if (here.some(r => r.id === selectedId)) b.classList.add("sel");
   b.onclick = () => { selectedId = rep.id; renderMatrix(); renderDetail(rep); $("detail").scrollIntoView({behavior: "smooth", block: "start"}); };
   return b;
 }
@@ -747,7 +780,7 @@ function renderMatrix() {
     ms.forEach(model => {
       const gr = runsOf(model).filter(r => r.scenario_id === id && r.arm === "G");
       if (!gr.length) { if (!multi) pills.append(el("span", "empty", "—")); return; }
-      const r = gr[gr.length - 1], o = outcome(r), pre = multi ? modelInfo(model).short + ": " : "";
+      const r = worstOf(gr).run, o = outcome(r), pre = multi ? modelInfo(model).short + ": " : "";
       const w = firstWarning(r);
       const p = o === "controller" ? el("span", "pill stop", pre + (MECH[r.halt_mechanism] || r.halt_mechanism || "stop"))
         : o === "warned" ? el("span", "pill stop", pre + "warning · " + (MECH[w.mechanism] || w.mechanism || "controller"))
