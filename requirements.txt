@@ -9,3 +9,6 @@ anthropic>=0.125
 pandas>=2.0
 matplotlib>=3.7
 tabulate>=0.9
+
+# Tests only (python -m pytest tests).
+pytest>=8
