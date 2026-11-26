@@ -36,6 +36,20 @@ stub. Two numbers come out: how many tokens the control would have saved, and
 whether it would have stopped a healthy run by mistake. Everything runs on your
 own computer; no real service is ever called.
 
+## Requirements
+
+What the stand has to do, and what each requirement is met by:
+
+| Requirement | Met by |
+| --- | --- |
+| Make tool failures happen on command and the same way every time, without calling any real service | `sandbox/fake_tools.py`: a stub that breaks in the six failure scenarios and serves the healthy tasks |
+| Run the same agent loop on a local model at no cost and on a hosted one | `agent/runner.py`: Qwen 2.5 7B through Ollama, Claude Haiku 5.5 through the Anthropic API |
+| Record every run in full: each model call with its token counts, each tool call and result, every controller decision | `console/data/runs.jsonl`, one record per run with its trace |
+| Apply every control configuration to the same runs and compute the two measures, tokens prevented and healthy tasks interrupted | `control/agent_fuel.py` replayed over the records by `evaluation/analyse.py` |
+| Keep the controller deterministic and explainable: no training, no model of its own, a mechanism and a reason for every decision | `control/agent_fuel.py`, standard library only; the journal of decisions |
+| Recompute every table and figure of the paper from the frozen record | the three commands under "Reproducing the paper's numbers" |
+| Let a reader watch a run as it happens and browse the results, on their own machine | the console, `console/` |
+
 ## Status
 
 The stand is complete and the data is in. 660 runs without control, nine
@@ -109,6 +123,37 @@ paper is a count, a sum or a ratio of sums over its rows. `config_matrix.csv`
 has one row per model setting, prompt condition, scenario and control
 configuration, with the record count, the repeats, the temperature and the
 dates of the first and last run.
+
+## Tests
+
+```
+python -m pytest tests
+```
+
+`tests/test_controller.py` plays a scripted agent against the stub under the
+controller, one test per scenario: which mechanism stops each broken service
+and at which call, that the flapping service and the forty-domain task run to
+the end, the ablation ladder D to G on the authentication error, and the
+components on their own. No model is called. The output of the last run is
+kept in [`results/test_log.txt`](results/test_log.txt).
+
+## Tested with
+
+The runs behind the paper and the tests were made on this setup. Newer
+versions are expected to work; these are the ones checked.
+
+| Component | Version |
+| --- | --- |
+| Machine | Apple M5, macOS 26.5.2 |
+| Python | 3.14.2 (3.10 or newer required) |
+| Ollama | 0.40.16 |
+| Local model | `qwen2.5:7b`, digest `845dbda0ea48` |
+| Hosted model | `claude-haiku-5-5`, with and without thinking, effort low and high |
+| anthropic | 2.3.0 |
+| PyYAML | 6.0.3 |
+| pandas | 3.1.0 |
+| matplotlib | 3.11.2 |
+| pytest | 9.2.0 |
 
 ## The controls
 
